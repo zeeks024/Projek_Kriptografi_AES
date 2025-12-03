@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S-Box Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cryptographic S-Box Analyzer</h1>
+            <p>Analyze and visualize properties of AES and Custom S-Boxes</p>
+        </header>
+
+        <main>
+            <section class="controls">
+                <div class="control-group">
+                    <label for="sbox-select">Select S-Box:</label>
+                    <select id="sbox-select">
+                        <option value="aes">AES Standard S-Box</option>
+                        <option value="sbox44">S-Box 44 (Proposed)</option>
+                        <option value="custom">Custom S-Box</option>
+                    </select>
+                </div>
+
+                <div id="custom-input-container" class="hidden">
+                    <label for="custom-sbox">Custom S-Box Values (Hex or Decimal, separated by space/comma):</label>
+                    <textarea id="custom-sbox" rows="5" placeholder="e.g. 63 7c 77 7b ..."></textarea>
+                </div>
+
+                <button id="analyze-btn">Analyze S-Box</button>
+            </section>
+
+            <section class="results-container hidden" id="results-section">
+                <div class="analysis-summary">
+                    <h2>Analysis Results</h2>
+                    
+                    <div class="metrics-grid">
+                        <div class="status-card">
+                            <span class="label">Bijective:</span>
+                            <span id="bijective-status" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">Nonlinearity (NL):</span>
+                            <span id="nl-value" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">SAC:</span>
+                            <span id="sac-value" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">BIC-NL:</span>
+                            <span id="bic-nl-value" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">BIC-SAC:</span>
+                            <span id="bic-sac-value" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">LAP:</span>
+                            <span id="lap-value" class="status-value">-</span>
+                        </div>
+                        <div class="status-card">
+                            <span class="label">DAP:</span>
+                            <span id="dap-value" class="status-value">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="balance-table-container">
+                        <h3>Balanced Property (Per Bit)</h3>
+                        <table class="balance-table">
+                            <thead>
+                                <tr>
+                                    <th>Bit</th>
+                                    <th>0s Count</th>
+                                    <th>1s Count</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="balance-tbody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="visualization">
+                    <h2>S-Box Visualization (16x16)</h2>
+                    <div class="grid-container" id="sbox-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+            
+            <section class="encryption-section hidden" id="encryption-section">
+                <h2>Encryption & Decryption Demo</h2>
+                
+                <div class="input-group" style="margin-bottom: 1.5rem;">
+                    <label for="encryption-key">Encryption Key (Text, max 16 chars):</label>
+                    <input type="text" id="encryption-key" placeholder="Enter secret key (default: This is a key123)" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+
+                <div class="encryption-controls-text">
+                    <h3>Encryption</h3>
+                    <div class="input-group">
+                        <label for="text-input">Plaintext Input:</label>
+                        <textarea id="text-input" rows="3" placeholder="Enter text to encrypt..."></textarea>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="encrypt-btn" class="btn primary-btn">Encrypt Text</button>
+                        <button id="download-report-btn" class="btn secondary-btn" style="background-color: #10b981;">Download Detailed Report (Excel)</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="encrypted-output">Ciphertext Output (Hex):</label>
+                        <textarea id="encrypted-output" rows="3" readonly placeholder="Encrypted hex will appear here..."></textarea>
+                    </div>
+                    
+                    <div id="encryption-process" class="hidden" style="margin-top: 2rem;">
+                        <h3>AES Process (First Block)</h3>
+                        <div id="process-steps"></div>
+                    </div>
+                </div>
+
+                <div class="decryption-controls-text" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+                    <h3>Decryption</h3>
+                    <div class="input-group">
+                        <label for="ciphertext-input">Ciphertext Input (Hex):</label>
+                        <textarea id="ciphertext-input" rows="3" placeholder="Enter hex ciphertext to decrypt..."></textarea>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="decrypt-btn" class="btn primary-btn" style="background-color: #8b5cf6;">Decrypt Text</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="decrypted-output">Decrypted Plaintext:</label>
+                        <textarea id="decrypted-output" rows="3" readonly placeholder="Decrypted text will appear here..."></textarea>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="constructor-section" id="constructor-section">
+                <h2>S-Box Constructor</h2>
+                <p class="section-desc">Construct custom S-boxes using affine matrix transformation as described in the research paper</p>
+                
+                <div class="constructor-controls">
+                    <h3>Step 1: Select or Edit Affine Matrix (8×8)</h3>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-matrix="K4">K4</button>
+                        <button class="preset-btn" data-matrix="K44">K44 (Best)</button>
+                        <button class="preset-btn" data-matrix="K_AES">K_AES</button>
+                       <button class="preset-btn custom-matrix-btn">Custom Matrix</button>
+                    </div>
+                    
+                    <div id="matrix-editor" class="matrix-editor hidden">
+                        <p>Edit the 8×8 affine matrix (0 or 1 only):</p>
+                        <div id="matrix-grid" class="matrix-grid"></div>
+                    </div>
+                    
+                    <button id="construct-btn" class="btn primary-btn">Construct S-Box</button>
+                </div>
+                
+                <div class="constructor-results hidden" id="constructor-results">
+                    <div class="result-header">
+                        <h3>Construction Results</h3>
+                        <div id="validity-badge" class="badge"></div>
+                    </div>
+                    
+                    <div class="results-grid">
+                        <div class="result-panel">
+                            <h4>Generated S-Box</h4>
+                            <div id="constructed-sbox-grid" class="grid-container-small"></div>
+                        </div>
+                        
+                        <div class="result-panel">
+                            <h4>Validation</h4>
+                            <div class="validation-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Bijective:</span>
+                                    <span id="const-bijective" class="stat-value">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Balanced:</span>
+                                    <span id="const-balanced" class="stat-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="construction-steps">
+                        <h4>Construction Process (Sample Inputs)</h4>
+                        <div id="steps-container"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}?v=2"></script>
+</body>
+</html>
