@@ -15,6 +15,44 @@ from openpyxl.styles import Font, Alignment, PatternFill
 
 app = Flask(__name__)
 
+# --- Helpers ---
+
+def parse_sbox_input(sbox_type, custom_sbox_str):
+    """Parses S-Box input from type and custom string."""
+    sbox = []
+    if sbox_type == 'custom':
+        if not custom_sbox_str:
+             return None, 'Custom S-Box string required.'
+        try:
+            # Handle various input formats (comma separated, space separated, hex, int)
+            cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
+            parts = cleaned_str.split()
+            for part in parts:
+                if part.startswith('0x') or part.startswith('0X'):
+                    sbox.append(int(part, 16))
+                else:
+                    try:
+                        sbox.append(int(part))
+                    except ValueError:
+                         # Try hex if int fails (e.g. "A5")
+                         sbox.append(int(part, 16))
+            
+            if len(sbox) != 256:
+                return None, f'Invalid S-Box length: {len(sbox)}. Must be 256.'
+            
+            # Validate values are 0-255
+            if any(x < 0 or x > 255 for x in sbox):
+                 return None, 'S-Box values must be between 0 and 255.'
+                 
+            return sbox, None
+        except Exception as e:
+            return None, f'Error parsing custom S-Box: {str(e)}'
+    else:
+        sbox = get_sbox(sbox_type)
+        if sbox is None:
+             return None, 'Invalid S-Box type.'
+        return sbox, None
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -83,35 +121,9 @@ def analyze():
         sbox_type = data.get('type')
         custom_sbox_str = data.get('custom_sbox')
         
-        sbox = []
-        if sbox_type == 'custom':
-            try:
-                # Handle various input formats (comma separated, space separated, hex, int)
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             # Try hex if int fails (e.g. "A5")
-                             sbox.append(int(part, 16))
-                
-                if len(sbox) != 256:
-                    return jsonify({'error': f'Invalid S-Box length: {len(sbox)}. Must be 256.'}), 400
-                
-                # Validate values are 0-255
-                if any(x < 0 or x > 255 for x in sbox):
-                     return jsonify({'error': 'S-Box values must be between 0 and 255.'}), 400
-                     
-            except Exception as e:
-                return jsonify({'error': f'Error parsing custom S-Box: {str(e)}'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
-            if sbox is None:
-                 return jsonify({'error': 'Invalid S-Box type.'}), 400
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
 
         # Perform Analysis
         is_bijective = check_bijective(sbox)
@@ -159,24 +171,9 @@ def analyze_advanced():
         sbox_type = data.get('type')
         custom_sbox_str = data.get('custom_sbox')
         
-        sbox = []
-        if sbox_type == 'custom':
-            try:
-                # Same parsing as analyze
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             sbox.append(int(part, 16))
-            except Exception as e:
-                return jsonify({'error': f'Error parsing custom S-Box: {str(e)}'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
         
         if not sbox:
             return jsonify({'error': 'Invalid S-Box.'}), 400
@@ -208,23 +205,9 @@ def avalanche_check():
         key_input = request.form.get('key')
         
         # Get S-Box
-        sbox = []
-        if sbox_type == 'custom':
-            try:
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             sbox.append(int(part, 16))
-            except Exception:
-                return jsonify({'error': 'Invalid Custom S-Box'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
             
         # Get Key
         key_bytes = key_input.encode('utf-8')
@@ -301,25 +284,12 @@ def encrypt():
         text_input = request.form.get('text_input')
         key_input = request.form.get('key')
         image_file = request.files.get('image_file') # New field
+        encryption_mode = request.form.get('encryption_mode', 'ecb') # 'ecb' or 'substitution'
         
         # Get S-Box
-        sbox = []
-        if sbox_type == 'custom':
-            try:
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             sbox.append(int(part, 16))
-            except Exception:
-                return jsonify({'error': 'Invalid Custom S-Box'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
             
         # Get Key
         if not key_input: key_input = "This is a key123"
@@ -334,7 +304,7 @@ def encrypt():
         # Handle Image Encryption
         if image_file:
             image_bytes = image_file.read()
-            encrypted_b64, hist_orig, hist_enc = encrypt_image_data(image_bytes, sbox, key_bytes)
+            encrypted_b64, hist_orig, hist_enc = encrypt_image_data(image_bytes, sbox, key_bytes, encryption_mode)
             
             if not encrypted_b64:
                  return jsonify({'error': 'Failed to process image.'}), 500
@@ -379,27 +349,9 @@ def decrypt():
         sbox_type = request.form.get('type')
         custom_sbox_str = request.form.get('custom_sbox')
         
-        sbox = []
-        if sbox_type == 'custom':
-            try:
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             sbox.append(int(part, 16))
-                if len(sbox) != 256:
-                    return jsonify({'error': f'Invalid S-Box length: {len(sbox)}. Must be 256.'}), 400
-            except Exception as e:
-                return jsonify({'error': f'Error parsing custom S-Box: {str(e)}'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
-            if sbox is None:
-                 return jsonify({'error': 'Invalid S-Box type.'}), 400
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
                  
         # Decrypt
         ciphertext_hex = request.form.get('ciphertext_input')
@@ -440,28 +392,9 @@ def encrypt_detailed():
         
         # Removed initial check to allow text input later
             
-        sbox = []
-        if sbox_type == 'custom':
-            # Same parsing logic
-            try:
-                cleaned_str = custom_sbox_str.replace('\n', ' ').replace(',', ' ')
-                parts = cleaned_str.split()
-                for part in parts:
-                    if part.startswith('0x') or part.startswith('0X'):
-                        sbox.append(int(part, 16))
-                    else:
-                        try:
-                            sbox.append(int(part))
-                        except ValueError:
-                             sbox.append(int(part, 16))
-                if len(sbox) != 256:
-                    return jsonify({'error': f'Invalid S-Box length: {len(sbox)}. Must be 256.'}), 400
-            except Exception as e:
-                return jsonify({'error': f'Error parsing custom S-Box: {str(e)}'}), 400
-        else:
-            sbox = get_sbox(sbox_type)
-            if sbox is None:
-                 return jsonify({'error': 'Invalid S-Box type.'}), 400
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error:
+            return jsonify({'error': error}), 400
                  
         # Read input
         text_input = request.form.get('text_input')

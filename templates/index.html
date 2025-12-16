@@ -82,6 +82,28 @@
                        <button class="preset-btn custom-matrix-btn"><i class="fas fa-edit"></i> Custom Matrix</button>
                     </div>
                     
+                    <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace;">Or select from full list (K1 - K128):</label>
+                        
+                        <div class="custom-dropdown" id="matrix-dropdown">
+                            <div class="dropdown-trigger" id="matrix-trigger">
+                                <span id="matrix-selected-text">-- Select Matrix --</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="dropdown-menu" id="matrix-menu">
+                                <div class="dropdown-search">
+                                    <input type="text" id="matrix-search" placeholder="Type to filter matrix...">
+                                </div>
+                                <div class="dropdown-items" id="matrix-items">
+                                    <!-- Items will be injected by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fallback for form data if needed (hidden input) -->
+                        <input type="hidden" id="matrix-preset-select" name="matrix-preset" value="">
+                    </div>
+                    
                     <div id="matrix-editor" class="matrix-editor hidden">
                         <p>Edit the 8×8 affine matrix (0 or 1 only):</p>
                         <div id="matrix-grid" class="matrix-grid"></div>
@@ -342,8 +364,22 @@
                             <button id="select-image-btn" class="btn secondary-btn">Select Image</button>
                             <div id="image-file-name" style="margin-top: 1rem; font-weight: bold;"></div>
                             
-                            <button id="encrypt-image-btn" class="btn primary-btn" style="margin-top: 1.5rem;" disabled>
-                                <i class="fas fa-lock"></i> Encrypt Image (AES-ECB)
+                            <div class="mode-selection" style="margin-top: 1rem; margin-bottom: 1rem; text-align: left; display: inline-block;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-color);">Encryption Mode:</label>
+                                <div style="display: flex; gap: 1rem;">
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="enc-mode" value="ecb" checked> 
+                                        <span>AES-ECB <small style="opacity: 0.6;">(Standard)</small></span>
+                                    </label>
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="enc-mode" value="substitution"> 
+                                        <span>S-Box Only <small style="opacity: 0.6;">(Visual Analysis)</small></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button id="encrypt-image-btn" class="btn primary-btn" style="margin-top: 1.5rem; width: 100%;" disabled>
+                                <i class="fas fa-lock"></i> Encrypt Image
                             </button>
                         </div>
                         
@@ -532,6 +568,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='matrices.js') }}?v=10"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=10"></script>
 </body>
 </html>

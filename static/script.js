@@ -541,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [0, 1, 1, 1, 0, 0, 0, 0],
             [0, 0, 1, 1, 1, 0, 0, 0],
             [0, 0, 0, 1, 1, 1, 0, 0],
-            [0, 0, 0, 0, 1, 1, 1, 1]
+            [0, 0, 0, 0, 1, 1, 1, 0]
         ],
         'K44': [
             [0, 1, 0, 1, 0, 1, 1, 1],
@@ -603,14 +603,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const constructorResults = document.getElementById('constructor-results');
 
     // Preset buttons
-    document.querySelectorAll('.preset-btn').forEach(btn => {
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    const matrixDropdown = document.getElementById('matrix-preset-select');
+
+    presetButtons.forEach(btn => {
         btn.addEventListener('click', () => {
+            // Highlight active button
+            presetButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Clear dropdown
+            if (matrixDropdown) matrixDropdown.value = "";
+
             const matrixName = btn.dataset.matrix;
-            if (matrixName) {
-                currentMatrix = PRESET_MATRICES[matrixName];
+            if (matrixName && PRESET_MATRICES[matrixName]) {
+                currentMatrix = PRESET_MATRICES[matrixName]; // Use deep copy if needed, but presets are const
                 loadMatrixEditor(currentMatrix);
                 matrixEditor.classList.remove('hidden');
-            } else {
+            } else if (btn.classList.contains('custom-matrix-btn')) {
                 // Custom matrix - initialize with zeros
                 currentMatrix = Array(8).fill(null).map(() => Array(8).fill(0));
                 loadMatrixEditor(currentMatrix);
@@ -618,6 +628,82 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+    // Removing the early closing of DOMContentLoaded here
+    // }); 
+
+    // --- Custom Dropdown Logic for K1-K128 ---
+    const dropdown = document.getElementById('matrix-dropdown');
+    const dropdownTrigger = document.getElementById('matrix-trigger');
+    const dropdownMenu = document.getElementById('matrix-menu');
+    const dropdownItems = document.getElementById('matrix-items');
+    const dropdownSearch = document.getElementById('matrix-search');
+    const selectedText = document.getElementById('matrix-selected-text');
+
+    if (dropdown && dropdownTrigger && typeof AFFINE_MATRICES !== 'undefined') {
+        console.log("✅ Dropdown elements found, initializing...");
+
+        // Clear any existing items first (prevent duplication)
+        dropdownItems.innerHTML = '';
+
+        // Populate items
+        AFFINE_MATRICES.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'dropdown-item';
+
+            let badges = '';
+            if (item.name === 'K44') badges = '<span class="item-badge best">BEST</span>';
+            else if (['K4', 'K81', 'K111', 'K128'].includes(item.name)) badges = '<span class="item-badge paper">PAPER</span>';
+            else if (item.val === 143) badges = '<span class="item-badge aes">AES</span>';
+
+            div.innerHTML = `<span>${item.name} ${badges}</span><span class="item-val">Val: ${item.val}</span>`;
+
+            div.onclick = function () {
+                selectedText.textContent = `${item.name} (Val: ${item.val})`;
+                selectedText.style.color = 'var(--primary-color)';
+                dropdownMenu.classList.remove('active');
+
+                presetButtons.forEach(b => b.classList.remove('active'));
+                currentMatrix = JSON.parse(JSON.stringify(item.matrix));
+                loadMatrixEditor(currentMatrix);
+                matrixEditor.classList.remove('hidden');
+            };
+
+            dropdownItems.appendChild(div);
+        });
+
+        // Toggle on click
+        dropdownTrigger.onclick = function (e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('active');
+            console.log("Dropdown toggled, active:", dropdownMenu.classList.contains('active'));
+        };
+
+        // Search
+        dropdownSearch.oninput = function (e) {
+            const filter = e.target.value.toLowerCase();
+            Array.from(dropdownItems.children).forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(filter) ? '' : 'none';
+            });
+        };
+
+        // Close on outside click
+        document.onclick = function (e) {
+            if (!dropdown.contains(e.target)) {
+                dropdownMenu.classList.remove('active');
+            }
+        };
+
+        console.log("✅ Dropdown initialized successfully");
+    } else {
+        console.error("❌ Dropdown initialization failed:", {
+            dropdown: !!dropdown,
+            trigger: !!dropdownTrigger,
+            matrices: typeof AFFINE_MATRICES !== 'undefined'
+        });
+    }
+
+    // End of Dropdown Logic
 
     function loadMatrixEditor(matrix) {
         matrixGrid.innerHTML = '';
@@ -1373,11 +1459,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const customSbox = document.getElementById('custom-sbox').value;
             const key = encryptionKeyInput.value;
 
+            // Get selected mode
+            const mode = document.querySelector('input[name="enc-mode"]:checked').value;
+
             const formData = new FormData();
             formData.append('image_file', selectedImageFile);
             formData.append('type', type);
             formData.append('custom_sbox', customSbox);
             formData.append('key', key);
+            formData.append('encryption_mode', mode);
 
             try {
                 const originalText = encryptImageBtn.innerHTML;

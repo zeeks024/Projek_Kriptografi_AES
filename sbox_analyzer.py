@@ -738,9 +738,9 @@ def get_lat_table(sbox):
     return lat
 
 
-def encrypt_image_data(image_bytes, sbox, key):
+def encrypt_image_data(image_bytes, sbox, key, mode='ecb'):
     """
-    Encrypts image bytes using AES-ECB mode (via AESCipher.encrypt_data) with the provided S-Box.
+    Encrypts image bytes using either AES-ECB mode or Pure S-Box Substitution.
     Returns: 
     - encrypted_b64 (string)
     - histogram_original (dict: {'r': [], 'g': [], 'b': []})
@@ -751,13 +751,13 @@ def encrypt_image_data(image_bytes, sbox, key):
         import io
         import numpy as np
         from aes_cipher import AESCipher # Local import to avoid circular dependency
+        import base64
         
         # Load image
         img = Image.open(io.BytesIO(image_bytes))
         img = img.convert('RGB') # Ensure RGB
         
         # Optimize: Resize image if too large (Pure Python AES is slow)
-        # Max dimension 256px is enough for visual verification of noise
         max_dim = 256
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim))
@@ -774,19 +774,31 @@ def encrypt_image_data(image_bytes, sbox, key):
             'b': [int(x) for x in np.histogram(img_arr[:,:,2], bins=256, range=(0,256))[0]]
         }
         
-        # Convert to bytes for encryption
-        img_bytes = img.tobytes()
-        original_len = len(img_bytes)
+        encrypted_bytes_raw = None
         
-        # Encrypt using robust AESCipher
-        cipher = AESCipher(key, sbox)
-        encrypted_bytes_padded = cipher.encrypt_data(img_bytes)
-        
-        # Truncate to original size for display purposes (ECB noise visualization)
-        encrypted_bytes_raw = encrypted_bytes_padded[:original_len]
-        
-        # Create Encrypted Image
-        img_enc = Image.frombytes('RGB', (width, height), encrypted_bytes_raw)
+        if mode == 'substitution':
+            # Pure S-Box Substitution (No AES Diffusion)
+            # This visualizes the S-Box bijectivity/nonlinearity directly on the image
+            sbox_arr = np.array(sbox, dtype=np.uint8)
+            pixels = np.array(img)
+            encrypted_pixels = sbox_arr[pixels]
+            img_enc = Image.fromarray(encrypted_pixels)
+            
+        else:
+            # AES-ECB Mode (Default)
+            img_bytes = img.tobytes()
+            original_len = len(img_bytes)
+            
+            # Encrypt using robust AESCipher
+            cipher = AESCipher(key, sbox)
+            encrypted_bytes_padded = cipher.encrypt_data(img_bytes)
+            
+            # Truncate to original size for display purposes
+            encrypted_bytes_raw = encrypted_bytes_padded[:original_len]
+            
+            # Create Encrypted Image
+            img_enc = Image.frombytes('RGB', (width, height), encrypted_bytes_raw)
+            
         
         # Calculate Encrypted Histogram
         img_enc_arr = np.array(img_enc)
@@ -799,7 +811,6 @@ def encrypt_image_data(image_bytes, sbox, key):
         # Convert encrypted image to base64
         buf = io.BytesIO()
         img_enc.save(buf, format='PNG')
-        import base64
         encrypted_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
         
         return encrypted_b64, hist_orig, hist_enc
