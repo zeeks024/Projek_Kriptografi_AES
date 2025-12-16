@@ -1,12 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
 venv/
-venv/
-.env/
-.env/
+.env
 
-pycache/
-*.py[cod]
-*$py.class
+# Excel
+*.xlsx
+*.xls
+~$*.xlsx
 
-build/
-dist/
-*.egg-info/
+# Temporary
+*.log

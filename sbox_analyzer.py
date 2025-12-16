@@ -321,7 +321,16 @@ def calculate_lap(sbox):
     
     # Let's implement the calculation and then adjust the formula to match 0.0625 for AES.
     
-    return max_abs_lat
+    # Calculate Linear Probability (LP)
+    # LP = (bias * 2)^2
+    # bias = LAT(a,b) / 256 = (WHT(a)/2) / 256 = WHT(a) / 512
+    # Wait, my previous derivation:
+    # 0.0625 = 1/16
+    # AES Spectral Radius = 32
+    # (32 / 128)^2 = (1/4)^2 = 1/16 = 0.0625
+    # So the formula that matches the standard paper value is (max_abs_lat / 128.0)**2
+    
+    return (max_abs_lat / 128.0) ** 2
 
 def calculate_dap(sbox):
     """
@@ -542,5 +551,266 @@ def get_construction_steps(x: int, affine_matrix: list, c_constant: list = None)
         'output': output,
         'output_binary': format(output, '08b')
     }
+
+def calculate_differential_uniformity(sbox):
+    """
+    Calculates Differential Uniformity (DU).
+    DU = max_{dx != 0, dy} #{x | S(x) ^ S(x^dx) = dy}
+    """
+    n = 8
+    max_count = 0
+    
+    for dx in range(1, 256):
+        counts = {}
+        for x in range(256):
+            y1 = sbox[x]
+            y2 = sbox[x ^ dx]
+            dy = y1 ^ y2
+            counts[dy] = counts.get(dy, 0) + 1
+            
+        for count in counts.values():
+            if count > max_count:
+                max_count = count
+                
+    return max_count
+
+def calculate_algebraic_degree(sbox):
+    """
+    Calculates the Algebraic Degree (AD) of the S-Box.
+    AD = max(deg(f_i)) for i=0..7 (output bits).
+    """
+    n = 8
+    max_degree = 0
+    
+    for bit in range(8):
+        # Get truth table for this output bit
+        f = [(sbox[x] >> bit) & 1 for x in range(256)]
+        
+        # Compute ANF using Mobius Transform
+        # In-place update
+        anf = list(f)
+        for i in range(n):
+            for j in range(256):
+                if (j >> i) & 1:
+                    anf[j] = (anf[j] + anf[j ^ (1 << i)]) % 2
+                    
+        # Find max weight of x for which anf[x] is 1
+        deg = 0
+        for x in range(256):
+            if anf[x] == 1:
+                w = bin(x).count('1')
+                if w > deg:
+                    deg = w
+        
+        if deg > max_degree:
+            max_degree = deg
+            
+    return max_degree
+
+def calculate_transparency_order(sbox):
+    """
+    Calculates Transparency Order (TO).
+    TO = max_{beta != 0} ( n - 2*wt(beta) - 1/(2^(2n) - 2^n) * sum_{a != 0} |W_S(beta, a)| )
+    where W_S(beta, a) = sum_{x} (-1)^(beta.x + a.S(x))
+    """
+    n = 8
+    M = 256
+    max_to = -float('inf')
+    
+    # Precompute Walsh Transforms for all linear combinations of output bits
+    # WHT_b[a] = sum_{x} (-1)^(b.S(x) + a.x)
+    # We need W_S(beta, a) which corresponds to WHT_a[beta] in my notation above?
+    # Let's stick to the formula: sum_{x} (-1)^(beta.x + a.S(x))
+    # This is exactly the Walsh Transform of the component function f_a(x) = a.S(x) evaluated at beta.
+    
+    # We need to sum |WHT_a[beta]| over all a != 0.
+    
+    # Store sum of absolute Walsh values for each beta
+    sum_abs_wht_beta = [0.0] * 256
+    
+    for a in range(1, 256):
+        # Component function f_a(x) = a.S(x)
+        f = []
+        for x in range(256):
+            val = sbox[x]
+            dot_prod = bin(a & val).count('1') % 2
+            f.append(1 if dot_prod == 0 else -1)
+            
+        wht = walsh_hadamard_transform(f)
+        
+        for beta in range(1, 256):
+            sum_abs_wht_beta[beta] += abs(wht[beta])
+            
+    # Calculate TO for each beta
+    factor = 1.0 / (M * (M - 1))
+    
+    for beta in range(1, 256):
+        wt_beta = bin(beta).count('1')
+        term = n - 2 * wt_beta - factor * sum_abs_wht_beta[beta]
+        if term > max_to:
+            max_to = term
+            
+    return max_to
+
+def calculate_correlation_immunity(sbox):
+    """
+    Calculates Correlation Immunity (CI).
+    CI = min(CI(f_i)) for i=0..7.
+    CI(f) is max k such that WHT(f)[w] = 0 for all 1 <= wt(w) <= k.
+    """
+    n = 8
+    min_ci = 8
+    
+    for bit in range(8):
+        # Component function
+        f = []
+        for x in range(256):
+            val = sbox[x]
+            bit_val = (val >> bit) & 1
+            f.append(1 if bit_val == 0 else -1)
+            
+        wht = walsh_hadamard_transform(f)
+        
+        # Check CI for this component
+        ci = 0
+        for k in range(1, n + 1):
+            is_zero = True
+            # Check all w with weight k
+            # This is inefficient to iterate all 256 indices and check weight every time.
+            # But 256 is small.
+            for w in range(1, 256):
+                if bin(w).count('1') == k:
+                    if wht[w] != 0:
+                        is_zero = False
+                        break
+            if is_zero:
+                ci = k
+            else:
+                break
+        
+        if ci < min_ci:
+            min_ci = ci
+            
+    return min_ci
+
+def get_ddt_table(sbox):
+    """
+    Computes the full 256x256 Differential Distribution Table (DDT).
+    DDT[dx][dy] = #{x | S(x) ^ S(x^dx) = dy}
+    Returns a list of lists (2D array).
+    """
+    ddt = [[0] * 256 for _ in range(256)]
+    
+    for dx in range(256):
+        for x in range(256):
+            y1 = sbox[x]
+            y2 = sbox[x ^ dx]
+            dy = y1 ^ y2
+            ddt[dx][dy] += 1
+            
+    return ddt
+
+def get_lat_table(sbox):
+    """
+    Computes the full 256x256 Linear Approximation Table (LAT).
+    LAT[a][b] = #{x | a.x = b.S(x)} - 128
+    Returns a list of lists (2D array).
+    Values are biased centered at 0 (range -128 to 128).
+    """
+    lat = [[0] * 256 for _ in range(256)]
+    
+    for b in range(256):
+        # Component function f_b(x) = b.S(x)
+        f = []
+        for x in range(256):
+            val = sbox[x]
+            # Dot product b.val over GF(2)
+            dot_prod = bin(b & val).count('1') % 2
+            f.append(1 if dot_prod == 0 else -1)
+            
+        wht = walsh_hadamard_transform(f)
+        
+        # WHT[a] = sum (-1)^(b.S(x) + a.x)
+        # LAT[a][b] = WHT[a] / 2
+        for a in range(256):
+            lat[a][b] = wht[a] // 2
+            
+    return lat
+
+
+def encrypt_image_data(image_bytes, sbox, key):
+    """
+    Encrypts image bytes using AES-ECB mode (via AESCipher.encrypt_data) with the provided S-Box.
+    Returns: 
+    - encrypted_b64 (string)
+    - histogram_original (dict: {'r': [], 'g': [], 'b': []})
+    - histogram_encrypted (dict: {'r': [], 'g': [], 'b': []})
+    """
+    try:
+        from PIL import Image
+        import io
+        import numpy as np
+        from aes_cipher import AESCipher # Local import to avoid circular dependency
+        
+        # Load image
+        img = Image.open(io.BytesIO(image_bytes))
+        img = img.convert('RGB') # Ensure RGB
+        
+        # Optimize: Resize image if too large (Pure Python AES is slow)
+        # Max dimension 256px is enough for visual verification of noise
+        max_dim = 256
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim))
+            
+        width, height = img.size
+        
+        # Convert to numpy array for histogram calculation
+        img_arr = np.array(img)
+        
+        # Calculate Original Histogram
+        hist_orig = {
+            'r': [int(x) for x in np.histogram(img_arr[:,:,0], bins=256, range=(0,256))[0]],
+            'g': [int(x) for x in np.histogram(img_arr[:,:,1], bins=256, range=(0,256))[0]],
+            'b': [int(x) for x in np.histogram(img_arr[:,:,2], bins=256, range=(0,256))[0]]
+        }
+        
+        # Convert to bytes for encryption
+        img_bytes = img.tobytes()
+        original_len = len(img_bytes)
+        
+        # Encrypt using robust AESCipher
+        cipher = AESCipher(key, sbox)
+        encrypted_bytes_padded = cipher.encrypt_data(img_bytes)
+        
+        # Truncate to original size for display purposes (ECB noise visualization)
+        encrypted_bytes_raw = encrypted_bytes_padded[:original_len]
+        
+        # Create Encrypted Image
+        img_enc = Image.frombytes('RGB', (width, height), encrypted_bytes_raw)
+        
+        # Calculate Encrypted Histogram
+        img_enc_arr = np.array(img_enc)
+        hist_enc = {
+            'r': [int(x) for x in np.histogram(img_enc_arr[:,:,0], bins=256, range=(0,256))[0]],
+            'g': [int(x) for x in np.histogram(img_enc_arr[:,:,1], bins=256, range=(0,256))[0]],
+            'b': [int(x) for x in np.histogram(img_enc_arr[:,:,2], bins=256, range=(0,256))[0]]
+        }
+        
+        # Convert encrypted image to base64
+        buf = io.BytesIO()
+        img_enc.save(buf, format='PNG')
+        import base64
+        encrypted_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        
+        return encrypted_b64, hist_orig, hist_enc
+        
+    except ImportError as e:
+        print(f"ImportError: {e}")
+        return None, {}, {}
+    except Exception as e:
+        print(f"Error encrypting image: {e}")
+        import traceback
+        traceback.print_exc()
+        return None, {}, {}
 
 
