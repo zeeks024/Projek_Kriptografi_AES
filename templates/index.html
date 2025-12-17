@@ -10,6 +10,9 @@
     <meta property="og:type" content="website">
     <title>The Cryptographic Lab | S-Box Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tooltip-styles.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='comparison.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='attacks.css') }}?v=1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -27,25 +30,22 @@
     <div class="stagger-visualizer"></div>
 
     <div class="container">
-    <div class="container">
         <!-- Hero Section -->
-        <header class="glass-panel" style="min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 4rem; padding: 3rem;">
+        <header class="glass-panel" style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 2rem; padding: 3rem; text-align: center;">
             <div class="header-glow"></div>
             <div class="logo-container" style="margin-bottom: 1.5rem; font-size: 3rem; color: var(--primary-color);">
                 <i class="fas fa-shield-halved"></i>
             </div>
-            <h1 class="animate-title" style="font-size: 4rem; margin-bottom: 1rem; letter-spacing: -2px;">
+            <h1 class="animate-title" style="font-size: 3.5rem; margin-bottom: 1rem; letter-spacing: -2px;">
                 <span class="title-word">Visualizing</span>
                 <span class="title-word">AES</span>
                 <span class="title-word" style="color: var(--primary-color);">Security</span>
             </h1>
-            <p class="subtitle" style="font-size: 1.5rem; margin-bottom: 2.5rem; max-width: 650px; font-weight: 300; opacity: 0.8;">
+            <p class="subtitle" style="font-size: 1.2rem; margin-bottom: 2rem; max-width: 650px; font-weight: 300; opacity: 0.8;">
                 An interactive platform exploring the mathematical foundations of <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9em; background: rgba(37, 99, 235, 0.1); padding: 0.2em 0.4em; border-radius: 4px; color: var(--primary-color);">Rijndael</span> encryption and S-Box construction.
             </p>
             
-            <a href="#analysis-tools" class="hero-btn" aria-label="Launch Analyzer Tool" style="padding: 1rem 3rem; background: var(--primary-color); color: white; border-radius: 2rem; text-decoration: none; font-weight: 600; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);">Launch Analyzer</a>
-
-            <div class="header-stats" style="margin-top: 4rem; opacity: 0.8; display: flex; gap: 3rem;">
+            <div class="header-stats" style="margin-top: 2rem; opacity: 0.8; display: flex; gap: 3rem;">
                 <div class="stat-item" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700;">128-bit</span>
                     <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">Architecture</span>
@@ -61,300 +61,664 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
-        <div id="analysis-tools" class="main-content">
-            <section class="constructor-section controls glass-panel" id="constructor-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-wand-magic-sparkles"></i> S-Box Constructor</h2>
+        <!-- MAIN NAVIGATION TABS -->
+        <nav class="tab-navigation glass-panel" style="position: sticky; top: 20px; z-index: 1000; padding: 0.5rem; margin-bottom: 2rem; border-radius: 1rem;">
+            <div class="tab-container" style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="nav-tab-btn active" data-tab="constructor">
+                    <i class="fas fa-wand-magic-sparkles"></i> <span>Constructor</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="analysis">
+                    <i class="fas fa-microscope"></i> <span>Analysis</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="text-crypto">
+                    <i class="fas fa-key"></i> <span>Text Crypto</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="image-crypto">
+                    <i class="fas fa-image"></i> <span>Image Crypto</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="about">
+                    <i class="fas fa-info-circle"></i> <span>About</span>
+                </button>
+            </div>
+        </nav>
 
-                </div>
-                <p class="section-desc"><i class="fas fa-info-circle"></i> Construct custom S-boxes using affine matrix transformation as described in the research paper</p>
-                
-                <div class="constructor-controls">
-                    <h3>Step 1: Select or Edit Affine Matrix (8×8)</h3>
-                    <div class="preset-buttons">
-                        <button class="preset-btn" data-matrix="K4"><i class="fas fa-cube"></i> K4</button>
-                        <button class="preset-btn preset-best" data-matrix="K44"><i class="fas fa-star"></i> K44 <span class="best-badge">Best</span></button>
-                        <button class="preset-btn" data-matrix="K81"><i class="fas fa-cube"></i> K81</button>
-                        <button class="preset-btn" data-matrix="K111"><i class="fas fa-cube"></i> K111</button>
-                        <button class="preset-btn" data-matrix="K128"><i class="fas fa-cube"></i> K128</button>
-                        <button class="preset-btn" data-matrix="K_AES"><i class="fas fa-shield"></i> K_AES</button>
-                       <button class="preset-btn custom-matrix-btn"><i class="fas fa-edit"></i> Custom Matrix</button>
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content-area">
+            
+            <!-- TAB 1: CONSTRUCTOR -->
+            <div id="tab-constructor" class="main-tab-panel active">
+                <section class="constructor-section controls glass-panel" id="constructor-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-wand-magic-sparkles"></i> S-Box Constructor</h2>
                     </div>
+                    <p class="section-desc"><i class="fas fa-info-circle"></i> Construct custom S-boxes using affine matrix transformation as described in the research paper</p>
                     
-                    <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-                        <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace;">Or select from full list (K1 - K128):</label>
-                        
-                        <div class="custom-dropdown" id="matrix-dropdown">
-                            <div class="dropdown-trigger" id="matrix-trigger">
-                                <span id="matrix-selected-text">-- Select Matrix --</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                            <div class="dropdown-menu" id="matrix-menu">
-                                <div class="dropdown-search">
-                                    <input type="text" id="matrix-search" placeholder="Type to filter matrix...">
-                                </div>
-                                <div class="dropdown-items" id="matrix-items">
-                                    <!-- Items will be injected by JS -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Fallback for form data if needed (hidden input) -->
-                        <input type="hidden" id="matrix-preset-select" name="matrix-preset" value="">
-                    </div>
-                    
-                    <div id="matrix-editor" class="matrix-editor hidden">
-                        <p>Edit the 8×8 affine matrix (0 or 1 only):</p>
-                        <div id="matrix-grid" class="matrix-grid"></div>
-                    </div>
-                    
-                    <button id="construct-btn" class="btn primary-btn">Construct S-Box</button>
-                </div>
-                
-                <div class="constructor-results hidden" id="constructor-results">
-                    <div class="result-header">
-                        <h3>Construction Results</h3>
-                        <div id="validity-badge" class="badge"></div>
-                    </div>
-                    
-                    <div class="results-grid">
-                        <div class="result-panel">
-                            <h4>Generated S-Box</h4>
-                            <div id="constructed-sbox-grid" class="grid-container-small"></div>
+                    <div class="constructor-controls">
+                        <h3>Step 1: Select or Edit Affine Matrix (8×8)</h3>
+                        <div class="preset-buttons">
+                            <button class="preset-btn" data-matrix="K4"><i class="fas fa-cube"></i> K4</button>
+                            <button class="preset-btn preset-best" data-matrix="K44"><i class="fas fa-star"></i> K44 <span class="best-badge">Best</span></button>
+                            <button class="preset-btn" data-matrix="K81"><i class="fas fa-cube"></i> K81</button>
+                            <button class="preset-btn" data-matrix="K111"><i class="fas fa-cube"></i> K111</button>
+                            <button class="preset-btn" data-matrix="K128"><i class="fas fa-cube"></i> K128</button>
+                            <button class="preset-btn" data-matrix="K_AES"><i class="fas fa-shield"></i> K_AES</button>
+                           <button class="preset-btn custom-matrix-btn"><i class="fas fa-edit"></i> Custom Matrix</button>
                         </div>
                         
-                        <div class="result-panel">
-                            <h4>Validation</h4>
-                            <div class="validation-stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Bijective:</span>
-                                    <span id="const-bijective" class="stat-value">-</span>
+                        <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                            <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; font-family: 'JetBrains Mono', monospace;">Or select from full list (K1 - K128):</label>
+                            
+                            <div class="custom-dropdown" id="matrix-dropdown">
+                                <div class="dropdown-trigger" id="matrix-trigger">
+                                    <span id="matrix-selected-text">-- Select Matrix --</span>
+                                    <i class="fas fa-chevron-down"></i>
                                 </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Balanced:</span>
-                                    <span id="const-balanced" class="stat-value">-</span>
+                                <div class="dropdown-menu" id="matrix-menu">
+                                    <div class="dropdown-search">
+                                        <input type="text" id="matrix-search" placeholder="Type to filter matrix...">
+                                    </div>
+                                    <div class="dropdown-items" id="matrix-items">
+                                        <!-- Items will be injected by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="matrix-preset-select" name="matrix-preset" value="">
+                        </div>
+                        
+                        <div id="matrix-editor" class="matrix-editor hidden">
+                            <p>Edit the 8×8 affine matrix (0 or 1 only):</p>
+                            <div id="matrix-grid" class="matrix-grid"></div>
+                        </div>
+                        
+                        <button id="construct-btn" class="btn primary-btn">Construct S-Box</button>
+                    </div>
+                    
+                    <div class="constructor-results hidden" id="constructor-results">
+                        <div class="result-header">
+                            <h3>Construction Results</h3>
+                            <div id="validity-badge" class="badge"></div>
+                        </div>
+                        
+                        <div class="results-grid">
+                            <div class="result-panel">
+                                <h4>Generated S-Box</h4>
+                                <div id="constructed-sbox-grid" class="grid-container-small"></div>
+                            </div>
+                            
+                            <div class="result-panel">
+                                <h4>Validation</h4>
+                                <div class="validation-stats">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Bijective:</span>
+                                        <span id="const-bijective" class="stat-value">-</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Balanced:</span>
+                                        <span id="const-balanced" class="stat-value">-</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Specific Input Checker -->
+                        <div class="construction-steps" style="margin-bottom: 2rem;">
+                            <h4><i class="fas fa-search"></i> Check Specific Input Value</h4>
+                            <div style="background: rgba(0, 242, 255, 0.05); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(0, 242, 255, 0.2);">
+                                <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+                                    Trace the construction process for a specific input value (0-255)
+                                </p>
+                                <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                                    <div>
+                                        <label for="specific-input" style="display: block; margin-bottom: 0.5rem;">
+                                            <strong>Input Value (0-255):</strong>
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            id="specific-input" 
+                                            min="0" 
+                                            max="255" 
+                                            placeholder="e.g., 63" 
+                                            style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); font-size: 1rem;"
+                                        />
+                                    </div>
+                                    <button id="check-specific-input-btn" class="btn-primary" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+                                        <i class="fas fa-play"></i> Trace Construction
+                                    </button>
+                                </div>
+                                <div id="specific-input-result" class="hidden" style="margin-top: 1.5rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="construction-steps">
+                            <h4><i class="fas fa-cogs"></i> Construction Process (Sample Inputs)</h4>
+                            <div id="steps-container"></div>
+                        </div>
+                        
+                        <button id="download-sbox-excel-btn" class="btn secondary-btn hidden" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 1rem;">
+                            <span class="btn-content">
+                                <i class="fas fa-file-excel"></i>
+                                <span>Download S-Box as Excel</span>
+                            </span>
+                            <span class="btn-shine"></span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- TAB 2: ANALYSIS -->
+            <div id="tab-analysis" class="main-tab-panel">
+                <section class="controls glass-panel">
+                    <div class="section-header">
+                        <h2><i class="fas fa-sliders"></i> S-Box Selection & Analysis</h2>
+                    </div>
+                    <div class="control-group">
+                        <label for="sbox-select"><i class="fas fa-box"></i> Select S-Box Type:</label>
+                        <div class="select-wrapper">
+                            <select id="sbox-select">
+                                <option value="aes">🛡️ AES Standard S-Box</option>
+                                <option value="sbox44">⭐ S-Box 44 (Proposed)</option>
+                                <option value="custom">✏️ Custom S-Box</option>
+                                <option value="upload">📤 Upload from Excel</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                    </div>
+
+                    <div id="custom-input-container" class="hidden">
+                        <label for="custom-sbox">Custom S-Box Values (Hex or Decimal, separated by space/comma):</label>
+                        <textarea id="custom-sbox" rows="5" placeholder="e.g. 63 7c 77 7b ..."></textarea>
                     </div>
                     
-                    <div class="construction-steps">
-                        <h4><i class="fas fa-cogs"></i> Construction Process (Sample Inputs)</h4>
-                        <div id="steps-container"></div>
+                    <div id="upload-input-container" class="hidden">
+                        <label for="excel-upload"><i class="fas fa-file-upload"></i> Upload Excel File (16x16 Grid Format):</label>
+                        <input type="file" id="excel-upload" accept=".xlsx,.xls" style="margin-bottom: 1rem;">
+                        <div id="upload-status" class="hidden" style="padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;"></div>
                     </div>
-                    
-                    <button id="download-sbox-excel-btn" class="btn secondary-btn hidden" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 1rem;">
+
+                    <button id="analyze-btn" class="primary-btn-large">
                         <span class="btn-content">
-                            <i class="fas fa-file-excel"></i>
-                            <span>Download S-Box as Excel</span>
+                            <i class="fas fa-microscope"></i>
+                            <span>Analyze S-Box</span>
                         </span>
                         <span class="btn-shine"></span>
                     </button>
-                </div>
-            </section>
+                </section>
 
-            <section class="controls">
-                <div class="section-header">
-                    <h2><i class="fas fa-sliders"></i> S-Box Selection & Analysis</h2>
-                </div>
-                <div class="control-group">
-                    <label for="sbox-select"><i class="fas fa-box"></i> Select S-Box Type:</label>
-                    <div class="select-wrapper">
-                        <select id="sbox-select">
-                            <option value="aes">🛡️ AES Standard S-Box</option>
-                            <option value="sbox44">⭐ S-Box 44 (Proposed)</option>
-                            <option value="custom">✏️ Custom S-Box</option>
-                            <option value="upload">📤 Upload from Excel</option>
-                        </select>
-                        <i class="fas fa-chevron-down select-arrow"></i>
-                    </div>
+                <!-- Sub-Tab Navigation for ANALYSIS -->
+                <div class="sub-tab-navigation" style="margin-top: 1.5rem;">
+                    <button class="sub-tab-btn active" data-subtab="analysis-results">
+                        <i class="fas fa-chart-bar"></i> Metrics & Results
+                    </button>
+                    <button class="sub-tab-btn" data-subtab="analysis-compare">
+                        <i class="fas fa-balance-scale"></i> Compare S-Boxes
+                    </button>
+                    <button class="sub-tab-btn" data-subtab="analysis-security">
+                        <i class="fas fa-shield-alt"></i> Security Analysis
+                    </button>
                 </div>
 
-                <div id="custom-input-container" class="hidden">
-                    <label for="custom-sbox">Custom S-Box Values (Hex or Decimal, separated by space/comma):</label>
-                    <textarea id="custom-sbox" rows="5" placeholder="e.g. 63 7c 77 7b ..."></textarea>
-                </div>
-                
-                <div id="upload-input-container" class="hidden">
-                    <label for="excel-upload"><i class="fas fa-file-upload"></i> Upload Excel File (16x16 Grid Format):</label>
-                    <input type="file" id="excel-upload" accept=".xlsx,.xls" style="margin-bottom: 1rem;">
-                    <div id="upload-status" class="hidden" style="padding: 0.75rem; border-radius: 0.5rem; margin-top: 0.5rem;"></div>
-                </div>
-
-                <button id="analyze-btn" class="primary-btn-large">
-                    <span class="btn-content">
-                        <i class="fas fa-microscope"></i>
-                        <span>Analyze S-Box</span>
-                    </span>
-                    <span class="btn-shine"></span>
-                </button>
-            </section>
-
-            <section class="results-container glass-panel hidden" id="results-section">
-                <div class="analysis-summary">
-                    <h2>Analysis Results</h2>
-                    
-                    <div class="metrics-grid">
-                        <div class="status-card" data-metric="bijective">
-                            <div class="card-icon"><i class="fas fa-check-circle"></i></div>
-                            <span class="label">Bijective</span>
-                            <span id="bijective-status" class="status-value">-</span>
-                            <div class="card-tooltip">Must be a one-to-one mapping</div>
-                        </div>
-                        <div class="status-card" data-metric="nl">
-                            <div class="card-icon"><i class="fas fa-wave-square"></i></div>
-                            <span class="label">Nonlinearity (NL)</span>
-                            <span id="nl-value" class="status-value">-</span>
-                            <div class="card-tooltip">Resistance to linear cryptanalysis</div>
-                        </div>
-                        <div class="status-card" data-metric="sac">
-                            <div class="card-icon"><i class="fas fa-water"></i></div>
-                            <span class="label">SAC</span>
-                            <span id="sac-value" class="status-value">-</span>
-                            <div class="card-tooltip">Strict Avalanche Criterion</div>
-                        </div>
-                        <div class="status-card" data-metric="bic-nl">
-                            <div class="card-icon"><i class="fas fa-cubes"></i></div>
-                            <span class="label">BIC-NL</span>
-                            <span id="bic-nl-value" class="status-value">-</span>
-                            <div class="card-tooltip">Bit Independence - Nonlinearity</div>
-                        </div>
-                        <div class="status-card" data-metric="bic-sac">
-                            <div class="card-icon"><i class="fas fa-project-diagram"></i></div>
-                            <span class="label">BIC-SAC</span>
-                            <span id="bic-sac-value" class="status-value">-</span>
-                            <div class="card-tooltip">Bit Independence - SAC</div>
-                        </div>
-                        <div class="status-card" data-metric="lap">
-                            <div class="card-icon"><i class="fas fa-chart-line"></i></div>
-                            <span class="label">LAP</span>
-                            <span id="lap-value" class="status-value">-</span>
-                            <div class="card-tooltip">Linear Approximation Probability</div>
-                        </div>
-                        <div class="status-card" data-metric="dap">
-                            <div class="card-icon"><i class="fas fa-bezier-curve"></i></div>
-                            <span class="label">DAP</span>
-                            <span id="dap-value" class="status-value">-</span>
-                            <div class="card-tooltip">Differential Approximation Probability</div>
-                        </div>
-                        <div class="status-card" data-metric="du">
-                            <div class="card-icon"><i class="fas fa-arrows-alt"></i></div>
-                            <span class="label">Diff. Uniformity</span>
-                            <span id="du-value" class="status-value">-</span>
-                            <div class="card-tooltip">Maximum differential probability</div>
-                        </div>
-                        <div class="status-card" data-metric="ad">
-                            <div class="card-icon"><i class="fas fa-superscript"></i></div>
-                            <span class="label">Algebraic Degree</span>
-                            <span id="ad-value" class="status-value">-</span>
-                            <div class="card-tooltip">Complexity of algebraic representation</div>
-                        </div>
-                        <div class="status-card" data-metric="to">
-                            <div class="card-icon"><i class="fas fa-eye-slash"></i></div>
-                            <span class="label">Transparency Order</span>
-                            <span id="to-value" class="status-value">-</span>
-                            <div class="card-tooltip">Resistance to DPA attacks</div>
-                        </div>
-                        <div class="status-card" data-metric="ci">
-                            <div class="card-icon"><i class="fas fa-shield-virus"></i></div>
-                            <span class="label">Correlation Immunity</span>
-                            <span id="ci-value" class="status-value">-</span>
-                            <div class="card-tooltip">Independence from input subsets</div>
-                        </div>
+                <!-- Sub-Tab Content: Metrics & Results -->
+                <div id="subtab-analysis-results" class="sub-tab-content active">
+                <section class="results-container glass-panel hidden" id="results-section">
+                    <div class="visualization" style="margin-bottom: 2rem;">
+                        <h2>S-Box Visualization (16x16)</h2>
+                        <div class="grid-container" id="sbox-grid"></div>
                     </div>
                     
-                    <div class="balance-table-container">
-                        <h3>Balanced Property (Per Bit)</h3>
-                        <table class="balance-table">
-                            <thead>
-                                <tr>
-                                    <th>Bit</th>
-                                    <th>0s Count</th>
-                                    <th>1s Count</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="balance-tbody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="visualization">
-                    <h2>S-Box Visualization (16x16)</h2>
-                    <div class="grid-container" id="sbox-grid">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </section>
-            
-            <section class="encryption-section glass-panel hidden" id="encryption-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-key"></i> Encryption & Decryption Demo</h2>
-                    <span class="section-badge">AES-128</span>
-                </div>
-                
-                <div class="input-group" style="margin-bottom: 1.5rem;">
-                    <label for="encryption-key"><i class="fas fa-lock"></i> Encryption Key (Text, max 16 chars):</label>
-                    <div class="input-with-icon">
-                        <input type="text" id="encryption-key" placeholder="Enter secret key (default: This is a key123)">
-                        <i class="fas fa-fingerprint input-icon"></i>
-                    </div>
-                </div>
-
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="encryption">
-                        <i class="fas fa-lock"></i>
-                        <span>Encryption</span>
-                    </button>
-                    <button class="tab-btn" data-tab="decryption">
-                        <i class="fas fa-unlock"></i>
-                        <span>Decryption</span>
-                    </button>
-                     <button class="tab-btn" data-tab="visuals">
-                        <i class="fas fa-chart-heatmap"></i>
-                        <span>Advanced Visuals</span>
-                    </button>
-                     <button class="tab-btn" data-tab="avalanche">
-                        <i class="fas fa-snowflake"></i>
-                        <span>Avalanche Demo</span>
-                    </button>
-                    <button class="tab-btn" data-tab="image-enc">
-                        <i class="fas fa-image"></i>
-                        <span>Image Encryption</span>
-                    </button>
-                </div>
-
-                <div id="tab-encryption" class="tab-content active">
-                    <!-- Existing Text Encryption -->
-                    <div class="encryption-controls-text">
-                        <div class="input-group">
-                            <label for="text-input">Plaintext Input:</label>
-                            <textarea id="text-input" rows="3" placeholder="Enter text to encrypt..."></textarea>
+                    <div class="analysis-summary">
+                        <h2>Analysis Results</h2>
+                        
+                        <div class="metrics-grid">
+                            <div class="status-card" data-metric="bijective">
+                                <div class="card-icon"><i class="fas fa-check-circle"></i></div>
+                                <span class="label">Bijective</span>
+                                <span id="bijective-status" class="status-value">-</span>
+                                <div class="card-tooltip">Must be a one-to-one mapping</div>
+                            </div>
+                            <!-- ... Other Status Cards (NL, SAC, etc) ... -->
+                            <div class="status-card" data-metric="nl">
+                                <div class="card-icon"><i class="fas fa-wave-square"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="Nonlinearity">Nonlinearity (NL)<span class="tooltip-content"></span></span></span>
+                                <span id="nl-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="sac">
+                                <div class="card-icon"><i class="fas fa-water"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="SAC">SAC<span class="tooltip-content"></span></span></span>
+                                <span id="sac-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="bic-nl">
+                                <div class="card-icon"><i class="fas fa-cubes"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="BIC-NL">BIC-NL<span class="tooltip-content"></span></span></span>
+                                <span id="bic-nl-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="bic-sac">
+                                <div class="card-icon"><i class="fas fa-project-diagram"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="BIC-SAC">BIC-SAC<span class="tooltip-content"></span></span></span>
+                                <span id="bic-sac-value" class="status-value">-</span>
+                            </div>
+                             <div class="status-card" data-metric="lap">
+                                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="LAP">LAP<span class="tooltip-content"></span></span></span>
+                                <span id="lap-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="dap">
+                                <div class="card-icon"><i class="fas fa-bezier-curve"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="DAP">DAP<span class="tooltip-content"></span></span></span>
+                                <span id="dap-value" class="status-value">-</span>
+                            </div>
+                             <div class="status-card" data-metric="du">
+                                <div class="card-icon"><i class="fas fa-arrows-alt"></i></div>
+                                <span class="label"><span class="crypto-tooltip" data-term="Differential Uniformity">Diff. Uniformity<span class="tooltip-content"></span></span></span>
+                                <span id="du-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="ad">
+                                <div class="card-icon"><i class="fas fa-superscript"></i></div>
+                                <span class="label">Algebraic Degree</span>
+                                <span id="ad-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="to">
+                                <div class="card-icon"><i class="fas fa-eye-slash"></i></div>
+                                <span class="label">Transparency Order</span>
+                                <span id="to-value" class="status-value">-</span>
+                            </div>
+                            <div class="status-card" data-metric="ci">
+                                <div class="card-icon"><i class="fas fa-shield-virus"></i></div>
+                                <span class="label">Correlation Immunity</span>
+                                <span id="ci-value" class="status-value">-</span>
+                            </div>
                         </div>
                         
-                        <div class="button-group">
-                            <button id="encrypt-btn" class="btn primary-btn">Encrypt Text</button>
-                            <button id="download-report-btn" class="btn secondary-btn" style="background-color: #10b981;">Download Detailed Report (Excel)</button>
+                        <div class="balance-table-container">
+                            <h3>Balanced Property (Per Bit)</h3>
+                            <table class="balance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Bit</th>
+                                        <th>0s Count</th>
+                                        <th>1s Count</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="balance-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                </div>
+                
+                <!-- Sub-Tab Content: Compare S-Boxes -->
+                <div id="subtab-analysis-compare" class="sub-tab-content hidden">
+                    <div class="comparison-tool">
+                        <h3><i class="fas fa-balance-scale"></i> S-Box Comparison Tool</h3>
+                        <p style="margin-bottom: 2rem; color: var(--text-muted);">
+                            Compare two S-Boxes side-by-side to analyze performance differences.
+                        </p>
+
+                        <!-- S-Box Selectors -->
+                        <div class="comparison-selectors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                            <div class="selector-group">
+                                <label><strong>S-Box 1:</strong></label>
+                                <select id="compare-sbox1" class="comparison-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
+                                    <option value="">Select S-Box...</option>
+                                    <option value="aes">AES (Rijndael)</option>
+                                    <option value="K4">K4</option>
+                                    <option value="K44">K44</option>
+                                    <option value="K81">K81</option>
+                                    <option value="K111">K111</option>
+                                    <option value="K128">K128</option>
+                                    <option value="current">Current Loaded S-Box</option>
+                                </select>
+                            </div>
+                            <div class="selector-group">
+                                <label><strong>S-Box 2:</strong></label>
+                                <select id="compare-sbox2" class="comparison-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
+                                    <option value="">Select S-Box...</option>
+                                    <option value="aes">AES (Rijndael)</option>
+                                    <option value="K4">K4</option>
+                                    <option value="K44">K44</option>
+                                    <option value="K81">K81</option>
+                                    <option value="K111">K111</option>
+                                    <option value="K128">K128</option>
+                                    <option value="current">Current Loaded S-Box</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="input-group">
-                            <label for="encrypted-output">Ciphertext Output (Hex):</label>
-                            <textarea id="encrypted-output" rows="3" readonly placeholder="Encrypted hex will appear here..."></textarea>
-                        </div>
-                        
-                        <div id="encryption-process" class="hidden" style="margin-top: 2rem;">
-                            <h3>AES Process (First Block)</h3>
-                            <div id="process-steps"></div>
+                        <button id="run-comparison-btn" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto 2rem; display: block;">
+                            <i class="fas fa-play"></i> Run Comparison
+                        </button>
+
+                        <!-- Comparison Results Container -->
+                        <div id="comparison-results" style="display: none;">
+                            <!-- Metrics Comparison Table -->
+                            <div class="comparison-table-container" style="overflow-x: auto; margin-bottom: 2rem;">
+                                <table class="comparison-table" style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: rgba(37, 99, 235, 0.1); border-bottom: 2px solid var(--primary-color);">
+                                            <th style="padding: 1rem; text-align: left;">Metric</th>
+                                            <th id="sbox1-name-header" style="padding: 1rem; text-align: center;">S-Box 1</th>
+                                            <th id="sbox2-name-header" style="padding: 1rem; text-align: center;">S-Box 2</th>
+                                            <th style="padding: 1rem; text-align: center;">Winner</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="comparison-tbody">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Summary Panel -->
+                            <div id="comparison-summary" class="comparison-summary" style="background: rgba(37, 99, 235, 0.1); border: 2px solid var(--primary-color); border-radius: 1rem; padding: 1.5rem; text-align: center;">
+                                <!-- Populated by JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- ... (Decryption, Visuals, Avalanche tabs omitted for brevity in replace target, ensuring they stay) ... -->
                 
-                <div id="tab-image-enc" class="tab-content hidden">
+                <!-- Sub-Tab Content: Security Analysis -->
+                <div id="subtab-analysis-security" class="sub-tab-content hidden">
+                    <div class="security-analysis">
+                        <h3><i class="fas fa-shield-alt"></i> Cryptanalysis Attack Simulations</h3>
+                        <p style="margin-bottom: 2rem; color: var(--text-muted);">
+                            Analyze S-Box resistance to linear and differential cryptanalysis attacks.
+                        </p>
+
+                        <!-- S-Box Selector (shared between both attacks) -->
+                        <div style="margin-bottom: 2rem; background: rgba(37, 99, 235, 0.05); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(37, 99, 235, 0.2);">
+                            <label><strong>Select S-Box to Analyze:</strong></label>
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-top: 1rem;">
+                                <select id="attack-sbox-select" class="form-select">
+                                    <option value="">Select S-Box...</option>
+                                    <option value="aes">AES (Rijndael)</option>
+                                    <option value="K4">K4</option>
+                                    <option value="K44">K44</option>
+                                    <option value="K81">K81</option>
+                                    <option value="K111">K111</option>
+                                    <option value="K128">K128</option>
+                                    <option value="current">Current Loaded S-Box</option>
+                                    <option value="custom">Custom (paste/upload)</option>
+                                </select>
+                                <button id="load-attack-sbox-btn" class="btn-primary">
+                                    <i class="fas fa-check"></i> Load
+                                </button>
+                            </div>
+                            <div id="attack-custom-upload" style="display: none; margin-top: 1rem;">
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Option 1: Upload File (Excel/CSV/TXT)</label>
+                                    <input type="file" id="attack-file-upload" accept=".xlsx,.xls,.csv,.txt" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); font-family: 'Inter', sans-serif;"/>
+                                </div>
+                                <div style="text-align: center; margin: 1rem 0; color: var(--text-muted); font-size: 0.85rem;">- OR -</div>
+                                <div>
+                                    <label style="font-size: 0.9rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Option 2: Paste S-Box (256 hex values, comma-separated)</label>
+                                    <textarea id="attack-custom-sbox-input" style="width: 100%; height: 80px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;" placeholder="0x63, 0x7c, 0x77, ..."></textarea>
+                                </div>
+                            </div>
+                            <div id="attack-sbox-status" style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted);">
+                                No S-Box loaded
+                            </div>
+                        </div>
+
+                        <!-- Attack Type Selector -->
+                        <div style="margin-bottom: 2rem;">
+                            <label><strong>Select Attack Type:</strong></label>
+                            <div class="attack-selector" style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                                <button id="btn-linear-attack" class="attack-type-btn active btn-primary" data-attack="linear" style="flex: 1; min-width: 200px;">
+                                    <i class="fas fa-chart-line"></i> Linear Cryptanalysis
+                                </button>
+                                <button id="btn-differential-attack" class="attack-type-btn btn-primary" data-attack="differential" style="flex: 1; min-width: 200px; opacity: 0.6;">
+                                    <i class="fas fa-bezier-curve"></i> Differential Cryptanalysis
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Linear Cryptanalysis Demo -->
+                        <div id="linear-attack-panel" class="attack-panel">
+                            <div class="attack-description" style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #FFC107; padding: 1rem; border-radius: 0.5rem; margin-bottom:2rem;">
+                                <h4 style="color: #FFC107; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i> What is Linear Cryptanalysis?
+                                </h4>
+                                <p style="margin: 0; font-size: 0.9rem;">
+                                    Linear cryptanalysis attempts to find linear approximations between input and output bits of the S-Box. 
+                                    High bias indicates weakness. Good S-Boxes minimize linear approximations.
+                                </p>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                                <div>
+                                    <label><strong>Input Mask (hex):</strong></label>
+                                    <select id="linear-input-mask" class="form-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
+                                       <option value="0x01">0x01 (bit 0)</option>
+                                        <option value="0x02">0x02 (bit 1)</option>
+                                        <option value="0x04">0x04 (bit 2)</option>
+                                        <option value="0x08">0x08 (bit 3)</option>
+                                        <option value="0x10">0x10 (bit 4)</option>
+                                        <option value="0x1F">0x1F (bits 0-4)</option>
+                                        <option value="0xFF">0xFF (all bits)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label><strong>Output Mask (hex):</strong></label>
+                                    <select id="linear-output-mask" class="form-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
+                                        <option value="0x01">0x01 (bit 0)</option>
+                                        <option value="0x02">0x02 (bit 1)</option>
+                                        <option value="0x04">0x04 (bit 2)</option>
+                                        <option value="0x08">0x08 (bit 3)</option>
+                                        <option value="0x10">0x10 (bit 4)</option>
+                                        <option value="0x1F">0x1F (bits 0-4)</option>
+                                        <option value="0xFF">0xFF (all bits)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button id="run-linear-btn" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto 2rem; display: block;">
+                                <i class="fas fa-play"></i> Run Linear Analysis
+                            </button>
+
+                            <div id="linear-results" style="display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Correlation Count</div>
+                                        <div id="linear-count" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">-</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">/ 256</div>
+                                    </div>
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Bias</div>
+                                        <div id="linear-bias" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">-</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Lower = Better</div>
+                                    </div>
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Security</div>
+                                        <div id="linear-security" style="font-size: 1.5rem; font-weight: 700;">-</div>
+                                    </div>
+                                </div>
+                                <div id="linear-explanation" class="attack-explanation" style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary-color); border-radius: 0.75rem; padding: 1.25rem;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Differential Cryptanalysis Demo -->
+                        <div id="differential-attack-panel" class="attack-panel" style="display: none;">
+                            <div class="attack-description" style="background: rgba(244, 67, 54, 0.1); border-left: 4px solid #F44336; padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem;">
+                                <h4 style="color: #F44336; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i> What is Differential Cryptanalysis?
+                                </h4>
+                                <p style="margin: 0; font-size: 0.9rem;">
+                                    Differential cryptanalysis analyzes how input differences propagate to output differences. 
+                                    Lower max probability = better resistance. Strong S-Boxes have uniform difference distribution.
+                                </p>
+                            </div>
+
+                            <div style="margin-bottom: 2rem;">
+                                <label><strong>Input Difference (hex):</strong></label>
+                                <select id="differential-input-diff" class="form-select" style="width: 100%; max-width: 400px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
+                                    <option value="0x01">0x01 (1-bit diff)</option>
+                                    <option value="0x02">0x02 (1-bit diff)</option>
+                                    <option value="0x03">0x03 (2-bit diff)</option>
+                                    <option value="0x0F">0x0F (4-bit diff)</option>
+                                    <option value="0xFF">0xFF (all bits)</option>
+                                </select>
+                            </div>
+
+                            <button id="run-differential-btn" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto 2rem; display: block;">
+                                <i class="fas fa-play"></i> Run Differential Analysis
+                            </button>
+
+                            <div id="differential-results" style="display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Max Occurrence</div>
+                                        <div id="diff-max-count" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">-</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">/ 256 pairs</div>
+                                    </div>
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Probability</div>
+                                        <div id="diff-probability" style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">-</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Lower = Better</div>
+                                    </div>
+                                    <div class="stat-card" style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Security</div>
+                                        <div id="diff-security" style="font-size: 1.5rem; font-weight: 700;">-</div>
+                                    </div>
+                                </div>
+
+                                <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem;">
+                                    <h4 style="margin-bottom: 1rem;">Top Output Differences:</h4>
+                                    <div id="diff-distribution" style="max-height: 300px; overflow-y: auto;"></div>
+                                </div>
+
+                                <div id="diff-explanation" class="attack-explanation" style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary-color); border-radius: 0.75rem; padding: 1.25rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: TEXT CRYPTO (With Sub-Tabs) -->
+            <div id="tab-text-crypto" class="main-tab-panel">
+                <section class="encryption-section glass-panel" id="encryption-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-key"></i> Encryption & Decryption Demo</h2>
+                        <span class="section-badge">AES-128</span>
+                    </div>
+                    
+
+                    <!-- Internal Sub-Tabs -->
+                    <div class="sub-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                        <button class="sub-tab-btn active" data-subtab="encryption">
+                            <i class="fas fa-lock"></i> Encryption
+                        </button>
+                        <button class="sub-tab-btn" data-subtab="decryption">
+                            <i class="fas fa-unlock"></i> Decryption
+                        </button>
+                        <button class="sub-tab-btn" data-subtab="visuals">
+                            <i class="fas fa-chart-heatmap"></i> Advanced Visuals
+                        </button>
+                    </div>
+
+                    <!-- Sub-Tab Content: Encryption -->
+                    <div id="subtab-encryption" class="sub-tab-content active">
+                        <div class="encryption-controls-text">
+                            <div class="input-group">
+                                <label for="text-input">Plaintext Input:</label>
+                                <textarea id="text-input" rows="3" placeholder="Enter text to encrypt..."></textarea>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="encryption-key-input">Encryption Key (Hex, 16 bytes):</label>
+                                <input type="text" id="encryption-key-input" placeholder="000102030405060708090a0b0c0d0e0f (default AES-128 key)" value="000102030405060708090a0b0c0d0e0f" style="font-family: 'JetBrains Mono', monospace;">
+                            </div>
+                            
+                            <div class="button-group">
+                                <button id="encrypt-btn" class="btn primary-btn">Encrypt Text</button>
+                                <button id="download-report-btn" class="btn secondary-btn" style="background-color: #10b981;">Download Detailed Report (Excel)</button>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="encrypted-output">Ciphertext Output (Hex):</label>
+                                <textarea id="encrypted-output" rows="3" readonly placeholder="Encrypted hex will appear here..."></textarea>
+                            </div>
+                            
+                            <div id="encryption-process" class="hidden" style="margin-top: 2rem;">
+                                <h3>AES Process (First Block)</h3>
+                                <div id="process-steps"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab Content: Decryption -->
+                    <div id="subtab-decryption" class="sub-tab-content hidden">
+                        <div class="decryption-controls-text">
+                            <div class="input-group">
+                                <label for="ciphertext-input">Ciphertext Input (Hex):</label>
+                                <textarea id="ciphertext-input" rows="3" placeholder="Enter hex ciphertext to decrypt..."></textarea>
+                            </div>
+                            
+                            <div class="button-group">
+                                <button id="decrypt-btn" class="btn primary-btn" style="background-color: #8b5cf6;">Decrypt Text</button>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="decrypted-output">Decrypted Plaintext:</label>
+                                <textarea id="decrypted-output" rows="3" readonly placeholder="Decrypted text will appear here..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab Content: Visuals -->
+                    <div id="subtab-visuals" class="sub-tab-content hidden">
+                        <div class="visuals-container" style="display: flex; flex-direction: column; gap: 3rem;">
+                            
+                            <!-- [NEW] Advanced Avalanche Visualization -->
+                            <div class="glass-panel" style="padding: 1.5rem; border: 1px solid rgba(0, 242, 255, 0.2);">
+                                <h3><i class="fas fa-layer-group"></i> Advanced Avalanche: Round-by-Round Diffusion</h3>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
+                                    <span>Round: <span id="av-round-display" style="font-family: 'JetBrains Mono'; color: var(--primary-color);">0</span></span>
+                                    <input type="range" id="av-round-slider" min="0" max="10" value="0" style="flex: 1;">
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">
+                                    <div class="state-grid-container">
+                                        <h4>State Matrix</h4>
+                                        <div id="av-state-grid" class="grid-container-4x4"></div>
+                                    </div>
+                                    <div class="state-stats">
+                                        <h4>Bit Changes</h4>
+                                        <div id="av-bit-stats" style="font-size: 2rem; font-weight: bold; color: var(--secondary-color);">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="load-visuals-btn" class="btn primary-btn" style="align-self: flex-start; margin-bottom: 1rem;">
+                                <i class="fas fa-sync"></i> Generate Heatmaps
+                            </button>
+                            
+                            <div class="heatmap-card">
+                                <h3><i class="fas fa-th"></i> Differential Distribution Table (DDT) Heatmap</h3>
+                                <div class="canvas-wrapper" style="position: relative; width: 100%; max-width: 512px; margin: 0 auto; aspect-ratio: 1/1;">
+                                    <canvas id="ddt-heatmap" width="256" height="256" style="width: 100%; height: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"></canvas>
+                                    <div id="ddt-loader" class="loader-overlay hidden"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>
+                                </div>
+                            </div>
+    
+                            <div class="heatmap-card">
+                                <h3><i class="fas fa-wave-square"></i> Linear Approximation Table (LAT) Heatmap</h3>
+                                <div class="canvas-wrapper" style="position: relative; width: 100%; max-width: 512px; margin: 0 auto; aspect-ratio: 1/1;">
+                                    <canvas id="lat-heatmap" width="256" height="256" style="width: 100%; height: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"></canvas>
+                                    <div id="lat-loader" class="loader-overlay hidden"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+ </div>
+                </section>
+            </div>
+
+            <!-- TAB 4: IMAGE CRYPTO -->
+            <div id="tab-image-crypto" class="main-tab-panel">
+                <section class="glass-panel">
+                    <div class="section-header">
+                        <h2><i class="fas fa-image"></i> Image Encryption</h2>
+                    </div>
                     <div class="image-enc-container">
                         <div class="file-upload-section" style="margin-bottom: 2rem; padding: 2rem; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; text-align: center;">
                             <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
@@ -409,152 +773,47 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-            </section>
-        </div> <!-- End Main Content -->
-        
-        <!-- ... (Footer) ... -->
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=4"></script>
-</body>
-
-                <div id="tab-decryption" class="tab-content hidden">
-                    <div class="decryption-controls-text">
-                        <div class="input-group">
-                            <label for="ciphertext-input">Ciphertext Input (Hex):</label>
-                            <textarea id="ciphertext-input" rows="3" placeholder="Enter hex ciphertext to decrypt..."></textarea>
-                        </div>
-                        
-                        <div class="button-group">
-                            <button id="decrypt-btn" class="btn primary-btn" style="background-color: #8b5cf6;">Decrypt Text</button>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="decrypted-output">Decrypted Plaintext:</label>
-                            <textarea id="decrypted-output" rows="3" readonly placeholder="Decrypted text will appear here..."></textarea>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="tab-visuals" class="tab-content hidden">
-                    <div class="visuals-container" style="display: flex; flex-direction: column; gap: 3rem;">
-                        <button id="load-visuals-btn" class="btn primary-btn" style="align-self: flex-start; margin-bottom: 1rem;">
-                            <i class="fas fa-sync"></i> Generate Heatmaps
-                        </button>
-                        
-                        <div class="heatmap-card">
-                            <h3><i class="fas fa-th"></i> Differential Distribution Table (DDT) Heatmap</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-                                Visualizes the probability of differential propagation. High peaks (red/yellow) indicate weaknesses against Differential Cryptanalysis.
-                            </p>
-                            <div class="canvas-wrapper" style="position: relative; width: 100%; max-width: 512px; margin: 0 auto; aspect-ratio: 1/1;">
-                                <canvas id="ddt-heatmap" width="256" height="256" style="width: 100%; height: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"></canvas>
-                                <div id="ddt-loader" class="loader-overlay hidden"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>
-                            </div>
-                        </div>
-
-                        <div class="heatmap-card">
-                            <h3><i class="fas fa-wave-square"></i> Linear Approximation Table (LAT) Heatmap</h3>
-                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-                                Visualizes linear biases. Strong correlations (dark/bright spots) indicate weaknesses against Linear Cryptanalysis.
-                            </p>
-                            <div class="canvas-wrapper" style="position: relative; width: 100%; max-width: 512px; margin: 0 auto; aspect-ratio: 1/1;">
-                                <canvas id="lat-heatmap" width="256" height="256" style="width: 100%; height: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);"></canvas>
-                                <div id="lat-loader" class="loader-overlay hidden"><i class="fas fa-spinner fa-spin"></i> Calculating...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="tab-avalanche" class="tab-content hidden">
-                     <div class="avalanche-demo">
-                        <h3><i class="fas fa-cogs"></i> Strict Avalanche Criterion (SAC) Live Demo</h3>
-                        <p style="margin-bottom: 2rem; color: var(--text-muted);">
-                            Click on any bit in the input block to flip it. Observe how many bits change in the encrypted output. 
-                            Ideal diffusion should change ~50% (64 bits) of the output.
-                        </p>
-                        
-                        <div class="avalanche-grid-container">
-                            <div class="bit-grid-panel">
-                                <h4>Input Block (128-bit)</h4>
-                                <div class="bit-instructions">Click a bit to flip <i class="fas fa-hand-pointer"></i></div>
-                                <div id="avalanche-input-grid" class="interactive-bit-grid">
-                                    <!-- Populated by JS -->
-                                </div>
-                            </div>
-                            
-                            <div class="arrow-container">
-                                <i class="fas fa-arrow-right fa-2x"></i>
-                                <div class="enc-label">AES Encrypt</div>
-                            </div>
-                            
-                            <div class="bit-grid-panel">
-                                <h4>Output Diff (128-bit)</h4>
-                                <div class="bit-instructions"><span class="highlight-diff">■</span> Changed Bits</div>
-                                <div id="avalanche-output-grid" class="interactive-bit-grid disabled">
-                                    <!-- Populated by JS -->
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="avalanche-stats">
-                            <div class="stat-box">
-                                <span class="stat-title">Bits Changed</span>
-                                <span id="avalanche-count" class="stat-number">0</span>
-                                <span class="stat-sub">/ 128</span>
-                            </div>
-                            <div class="stat-box">
-                                <span class="stat-title">Diffusion Rate</span>
-                                <span id="avalanche-percent" class="stat-number">0%</span>
-                                <span class="stat-sub">Target: ~50%</span>
-                            </div>
-                        </div>
-                     </div>
-                </div>
-            </section>
-        </main>
-            </section>
-        </div> <!-- End Main Content -->
-
-        <!-- Project Context Section -->
-        <section class="glass-panel" style="margin-top: 4rem; padding: 4rem 2rem;">
-            <div style="max-width: 800px; margin: 0 auto;">
-                <div style="margin-bottom: 3rem; text-align: center;">
-                    <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">The Research</h2>
-                    <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7;">
-                        This tool implements advanced cryptanalysis techniques based on recent affine transformation research. 
-                        It allows for the construction of cryptographically strong S-Boxes essential for securing modern digital infrastructure.
-                    </p>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-                    <div>
-                        <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Tech Stack</h3>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            <span class="tech-badge">Python 3.9</span>
-                            <span class="tech-badge">Flask</span>
-                            <span class="tech-badge">NumPy</span>
-                            <span class="tech-badge">Anime.js</span>
-                            <span class="tech-badge">CSS3 Variables</span>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Key Features</h3>
-                        <ul style="list-style: none; padding: 0; color: var(--text-color);">
-                            <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Affine Matrix Transformation</li>
-                            <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Real-time SAC & Nonlinearity Data</li>
-                            <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Interactive Encryption Trace</li>
-                        </ul>
-                    </div>
-                </div>
+                </section>
             </div>
-        </section>
 
-        <!-- Developer Footer -->
+            <!-- TAB 5: ABOUT / RESEARCH -->
+            <div id="tab-about" class="main-tab-panel">
+                <section class="glass-panel" style="padding: 4rem 2rem;">
+                    <div style="max-width: 800px; margin: 0 auto;">
+                        <div style="margin-bottom: 3rem; text-align: center;">
+                            <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">The Research</h2>
+                            <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7;">
+                                This tool implements advanced cryptanalysis techniques based on recent affine transformation research. 
+                                It allows for the construction of cryptographically strong S-Boxes essential for securing modern digital infrastructure.
+                            </p>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                            <div>
+                                <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Tech Stack</h3>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    <span class="tech-badge">Python 3.9</span>
+                                    <span class="tech-badge">Flask</span>
+                                    <span class="tech-badge">NumPy</span>
+                                    <span class="tech-badge">Anime.js</span>
+                                    <span class="tech-badge">CSS3 Variables</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Key Features</h3>
+                                <ul style="list-style: none; padding: 0; color: var(--text-color);">
+                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Affine Matrix Transformation</li>
+                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Real-time SAC & Nonlinearity Data</li>
+                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Interactive Encryption Trace</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+        </main>
+
         <footer style="margin-top: 4rem; text-align: center; padding: 2rem; color: var(--text-muted);">
             <p style="margin-bottom: 1rem;">Designed & Engineered by <strong style="color: var(--text-color);">Arzak</strong></p>
             <div style="display: flex; justify-content: center; gap: 1.5rem; font-size: 1.5rem;">
@@ -566,9 +825,21 @@
         </footer>
     </div>
 
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="{{ url_for('static', filename='matrices.js') }}?v=10"></script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=10"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="{{ url_for('static', filename='matrices.js') }}?v=14"></script>
+    <script src="{{ url_for('static', filename='aes.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='tooltips.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='comparison.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='attacks.js') }}?v=6"></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v=19"></script>
+    <script>
+        // Initialize tooltips when DOM is ready
+        if (typeof initializeTooltips !== 'undefined') {
+            initializeTooltips();
+        }
+    </script>
 </body>
 </html>

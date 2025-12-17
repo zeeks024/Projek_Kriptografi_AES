@@ -1,0 +1,80 @@
+/* =============== INTERACTIVE TOOLTIPS =============== */
+.crypto-tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted var(--primary-color);
+    cursor: help;
+    color: var(--primary-color);
+}
+
+.crypto-tooltip .tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    z-index: 999999;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 350px;
+    max-width: 90vw;
+    background: rgba(15, 23, 42, 0.98);
+    border: 2px solid var(--primary-color);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.6), 0 0 0 1px rgba(37, 99, 235, 0.3);
+    backdrop-filter: blur(12px);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #E2E8F0;
+    pointer-events: none;
+    text-align: left;
+}
+
+.crypto-tooltip .tooltip-content::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--primary-color) transparent transparent transparent;
+}
+
+.crypto-tooltip:hover .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip-title {
+    font-weight: 700;
+    color: #00F2FF;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    letter-spacing: 0.025em;
+}
+
+.tooltip-definition {
+    margin-bottom: 0.75rem;
+    color: #F1F5F9;
+    font-weight: 400;
+}
+
+.tooltip-note {
+    font-size: 0.8rem;
+    color: #94A3B8;
+    font-style: normal;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(100, 116, 139, 0.3);
+    font-weight: 400;
+}
+
+/* Responsive tooltip */
+@media (max-width: 768px) {
+    .crypto-tooltip .tooltip-content {
+        width: 280px;
+        font-size: 0.8rem;
+    }
+}

@@ -1,4 +1,72 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ========== 1. MAIN TAB NAVIGATION ==========
+    const mainTabBtns = document.querySelectorAll('.nav-tab-btn');
+    const mainTabPanels = document.querySelectorAll('.main-tab-panel');
+
+    // Load saved main tab or default
+    const savedMainTab = localStorage.getItem('activeMainTab') || 'constructor';
+    switchMainTab(savedMainTab);
+
+    mainTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+            switchMainTab(tabName);
+            localStorage.setItem('activeMainTab', tabName);
+        });
+    });
+
+    function switchMainTab(tabName) {
+        mainTabBtns.forEach(btn => btn.classList.remove('active'));
+        mainTabPanels.forEach(panel => panel.classList.remove('active'));
+
+        const activeBtn = document.querySelector(`.nav-tab-btn[data-tab="${tabName}"]`);
+        const activePanel = document.getElementById(`tab-${tabName}`);
+
+        if (activeBtn && activePanel) {
+            activeBtn.classList.add('active');
+            activePanel.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            console.log(`✅ Main Tab Switched: ${tabName}`);
+        }
+    }
+
+    // ========== 2. INTERNAL SUB-TAB NAVIGATION (Text Crypto) ==========
+    const subTabBtns = document.querySelectorAll('.sub-tab-btn');
+    const subTabPanels = document.querySelectorAll('.sub-tab-content');
+
+    // Default sub-tab
+    switchSubTab('encryption');
+
+    subTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchSubTab(btn.dataset.subtab);
+        });
+    });
+
+    function switchSubTab(subTabName) {
+        subTabBtns.forEach(btn => btn.classList.remove('active'));
+
+        // Hide all panels strictly
+        subTabPanels.forEach(panel => {
+            panel.classList.remove('active');
+            panel.classList.add('hidden');
+        });
+
+        const activeBtn = document.querySelector(`.sub-tab-btn[data-subtab="${subTabName}"]`);
+        const activePanel = document.getElementById(`subtab-${subTabName}`);
+
+        if (activeBtn && activePanel) {
+            activeBtn.classList.add('active');
+            activePanel.classList.remove('hidden');
+            activePanel.classList.add('active');
+            console.log(`🔹 Sub-Tab Switched: ${subTabName}`);
+        }
+    }
+
+    // Expose globally
+    window.switchMainTab = switchMainTab;
+    window.switchSubTab = switchSubTab;
+
     // Anime.js Page Load Animations
     if (typeof anime !== 'undefined') {
         // Header fade in and slide down
@@ -171,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const textInput = document.getElementById('text-input');
     const encryptBtn = document.getElementById('encrypt-btn');
     const encryptedOutput = document.getElementById('encrypted-output');
-    const encryptionKeyInput = document.getElementById('encryption-key');
+    const encryptionKeyInput = document.getElementById('encryption-key-input');
 
     // Decryption elements
     const ciphertextInput = document.getElementById('ciphertext-input');
@@ -179,40 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const decryptedOutput = document.getElementById('decrypted-output');
 
     // Tab Switching Logic with Anime.js animation
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    // [REMOVED] Old Tab Logic
 
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Remove active class from all buttons and contents
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => {
-                c.classList.remove('active');
-                c.classList.add('hidden');
-            });
-
-            // Add active class to clicked button
-            btn.classList.add('active');
-
-            // Show corresponding content with Anime.js animation
-            const tabId = btn.dataset.tab;
-            const targetTab = document.getElementById(`tab-${tabId}`);
-            targetTab.classList.remove('hidden');
-
-            if (typeof anime !== 'undefined') {
-                anime({
-                    targets: targetTab,
-                    opacity: [0, 1],
-                    translateX: [20, 0],
-                    duration: 400,
-                    easing: 'easeOutQuad',
-                    complete: () => targetTab.classList.add('active')
-                });
-            } else {
-                setTimeout(() => targetTab.classList.add('active'), 10);
-            }
-        });
-    });
 
     // Toggle custom input visibility with smooth transition
     const uploadInputContainer = document.getElementById('upload-input-container');
@@ -265,6 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             displayResults(data);
 
+            // Store metrics globally for comparison tool
+            window.lastAnalysisMetrics = data;
+
             // Show encryption section after successful analysis with smooth scroll
             encryptionSection.classList.remove('hidden');
             setTimeout(() => {
@@ -279,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Encrypt Text
+    // [MODIFIED] Client-Side Encryption Implementation
     encryptBtn.addEventListener('click', async () => {
         const text = textInput.value;
         if (!text) {
@@ -287,58 +326,103 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const type = sboxSelect.value;
-        const customSbox = document.getElementById('custom-sbox').value;
-        const key = encryptionKeyInput.value;
-
-        const formData = new FormData();
-        formData.append('text_input', text);
-        formData.append('type', type);
-        formData.append('key', key);
-        if (type === 'custom') {
-            formData.append('custom_sbox', customSbox);
-        }
+        const key = encryptionKeyInput.value || '000102030405060708090a0b0c0d0e0f';
+        const sBox = window.currentSBox; // Use loaded S-Box
 
         try {
             const originalText = encryptBtn.textContent;
-            encryptBtn.textContent = 'Encrypting...';
+            encryptBtn.textContent = 'Encrypting (Client-Side)...';
             encryptBtn.disabled = true;
 
-            const response = await fetch('/encrypt', {
-                method: 'POST',
-                body: formData
-            });
+            // 1. Initialize Client-Side AES
+            const aes = new AES_Client(key, sBox); // sBox can be null (uses default)
+            console.log("🔒 Running Client-Side AES...");
 
-            const data = await response.json();
+            // 2. Encrypt
+            const startTime = performance.now();
+            const result = aes.encryptText(text);
+            const endTime = performance.now();
+            console.log(`✅ Encryption complete in ${(endTime - startTime).toFixed(2)}ms`);
 
-            if (!response.ok) {
-                alert(data.error || 'Encryption failed');
-                encryptBtn.textContent = originalText;
-                encryptBtn.disabled = false;
-                return;
-            }
+            // 3. Display Result
+            encryptedOutput.value = result.hex;
+            ciphertextInput.value = result.hex; // Auto-fill decrypt
 
-            encryptedOutput.value = data.encrypted_text;
-            // Auto-fill decryption input
-            ciphertextInput.value = data.encrypted_text;
+            // 4. Process Trace Data for Visualization
+            if (result.trace) {
+                // Convert 1D arrays to 4x4 matrices for displayEncryptionProcess
+                const formattedTrace = formatTraceForDisplay(result.trace);
+                displayEncryptionProcess(formattedTrace);
 
-            // Display Process
-            if (data.trace_data) {
-                displayEncryptionProcess(data.trace_data);
+                // Store for Avalanche visualizer
+                window.lastTrace = result.trace; // Raw trace with numeric 1D arrays
+                updateAvalancheVisualization(0); // Show Round 0
             }
 
             encryptBtn.textContent = originalText;
             encryptBtn.disabled = false;
 
         } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to encrypt text.');
+            console.error('Encryption Error:', error);
+            alert('Client-Side Encryption Failed: ' + error.message);
             encryptBtn.textContent = 'Encrypt Text';
             encryptBtn.disabled = false;
         }
     });
 
-    // Decrypt Text
+    // Helper: Convert AES_Client trace to 4x4 format
+    function formatTraceForDisplay(clientTrace) {
+        const steps = [];
+
+        // Helper to chop 16-byte array into 4x4 grid (Row-Major or Column-Major?)
+        // Standard AES is Column-Major state, but our arrays are flat 0..15.
+        // displayEncryptionProcess expects item.state[row][col].
+        // Usually index = col * 4 + row (Column Major) or row * 4 + col (Row Major).
+        // AES_Client uses flat array. Let's assume Row-Major for simple visualization unless we want strict AES state.
+        // Let's use simple row-filling 0,1,2,3 -> row 0.
+        const toGrid = (arr) => {
+            const grid = [];
+            for (let r = 0; r < 4; r++) {
+                const row = [];
+                for (let c = 0; c < 4; c++) row.push(arr[r + c * 4]); // Column-Major mapping (standard AES)
+                grid.push(row);
+            }
+            return grid;
+        };
+
+        clientTrace.forEach(t => {
+            if (t.round === 0) {
+                // Round 0
+                steps.push({ round: 'Init', step: 'Initial State', state: toGrid(t.finalState || t.state || t.start) });
+            } else if (t.round <= 10) {
+                // SubBytes
+                if (t.afterSub) steps.push({ round: t.round, step: 'SubBytes', state: toGrid(t.afterSub) });
+                // ShiftRows
+                if (t.afterShift) steps.push({ round: t.round, step: 'ShiftRows', state: toGrid(t.afterShift) });
+                // MixColumns (Skip for Round 10)
+                if (t.afterMix) steps.push({ round: t.round, step: 'MixColumns', state: toGrid(t.afterMix) });
+
+                // AddRoundKey
+                // Recalculate Key: FinalState XOR InputState
+                let inputState = t.afterMix;
+                if (t.round === 10) inputState = t.afterShift;
+
+                const derivedKey = (t.finalState && inputState)
+                    ? t.finalState.map((v, i) => v ^ inputState[i])
+                    : new Array(16).fill(0);
+
+                steps.push({
+                    round: t.round,
+                    step: 'AddRoundKey',
+                    state: toGrid(t.finalState),
+                    key: toGrid(derivedKey)
+                });
+            }
+        });
+        return steps;
+    }
+
+    // [MODIFIED] Client-Side Decryption Implementation
     decryptBtn.addEventListener('click', async () => {
         const ciphertext = ciphertextInput.value;
         if (!ciphertext) {
@@ -346,45 +430,55 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const type = sboxSelect.value;
-        const customSbox = document.getElementById('custom-sbox').value;
-        const key = encryptionKeyInput.value;
+        const key = encryptionKeyInput.value || '000102030405060708090a0b0c0d0e0f';
 
-        const formData = new FormData();
-        formData.append('ciphertext_input', ciphertext);
-        formData.append('type', type);
-        formData.append('key', key);
-        if (type === 'custom') {
-            formData.append('custom_sbox', customSbox);
+        // Use loaded S-Box or default to AES S-Box
+        let sBox = window.currentSBox;
+        if (!sBox) {
+            console.warn('⚠️ No S-Box loaded, using default AES S-Box');
+            // Default AES S-Box
+            sBox = [0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
+                0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
+                0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+                0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
+                0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
+                0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+                0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
+                0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
+                0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+                0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
+                0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+                0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+                0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
+                0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
+                0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+                0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16];
         }
 
         try {
             const originalText = decryptBtn.textContent;
-            decryptBtn.textContent = 'Decrypting...';
+            decryptBtn.textContent = 'Decrypting (Client-Side)...';
             decryptBtn.disabled = true;
 
-            const response = await fetch('/decrypt', {
-                method: 'POST',
-                body: formData
-            });
+            // 1. Initialize Client-Side AES
+            const aes = new AES_Client(key, sBox);
+            console.log("🔓 Running Client-Side Decryption...");
 
-            const data = await response.json();
+            // 2. Decrypt
+            const startTime = performance.now();
+            const plaintext = aes.decryptText(ciphertext);
+            const endTime = performance.now();
+            console.log(`✅ Decryption complete in ${(endTime - startTime).toFixed(2)}ms`);
 
-            if (!response.ok) {
-                alert(data.error || 'Decryption failed');
-                decryptBtn.textContent = originalText;
-                decryptBtn.disabled = false;
-                return;
-            }
-
-            decryptedOutput.value = data.decrypted_text;
+            // 3. Display Result
+            decryptedOutput.value = plaintext;
 
             decryptBtn.textContent = originalText;
             decryptBtn.disabled = false;
 
         } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to decrypt text.');
+            console.error('Decryption Error:', error);
+            alert('Client-Side Decryption Failed: ' + error.message);
             decryptBtn.textContent = 'Decrypt Text';
             decryptBtn.disabled = false;
         }
@@ -529,6 +623,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 easing: 'easeOutExpo'
             });
         }
+
+        // [NEW] Capture active S-Box for Client-Side AES
+        window.currentSBox = data.sbox;
+        console.log("✅ Custom S-Box Loaded for Client-Side AES");
     }
 
     // =============== S-BOX CONSTRUCTOR ===============
@@ -757,6 +855,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Store affine matrix for specific input checker
+            data.affine_matrix = currentMatrix;
+            data.c_constant = null; // Will use default C_AES
+
             displayConstructorResults(data);
             constructorResults.classList.remove('hidden');
 
@@ -798,6 +900,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayConstructorResults(data) {
+        // Store data globally for specific input checker
+        window.lastConstructionData = data;
+
         // Validity badge
         const validityBadge = document.getElementById('validity-badge');
         validityBadge.textContent = data.valid ? '✓ VALID S-BOX' : '✗ INVALID S-BOX';
@@ -881,8 +986,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             stepCard.innerHTML = `
-                <div class="step-header">Input: ${step.input} (0x${step.input.toString(16).toUpperCase().padStart(2, '0')} = 0b${step.input_binary})</div>
-                <div class="step-body">
+                <div class="step-header-collapsible" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.collapse-icon').classList.toggle('rotated');">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chevron-right collapse-icon" style="transition: transform 0.3s ease; font-size: 0.8rem;"></i>
+                        <span>Input: ${step.input} (0x${step.input.toString(16).toUpperCase().padStart(2, '0')} = 0b${step.input_binary})</span>
+                    </div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Click to expand</span>
+                </div>
+                <div class="step-body hidden" style="transition: max-height 0.3s ease;">
                    <div class="step-item">
                         <span class="step-label">Step 1: Multiplicative Inverse in GF(2^8)</span>
                         <div class="step-value" style="margin-top: 0.5rem; font-size: 1.1rem;">
@@ -970,6 +1081,198 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Specific Input Checker for Constructor
+    const checkSpecificInputBtn = document.getElementById('check-specific-input-btn');
+    if (checkSpecificInputBtn) {
+        checkSpecificInputBtn.addEventListener('click', async () => {
+            const inputValue = parseInt(document.getElementById('specific-input').value);
+            const resultDiv = document.getElementById('specific-input-result');
+
+            if (isNaN(inputValue) || inputValue < 0 || inputValue > 255) {
+                alert('Please enter a valid input value between 0 and 255');
+                return;
+            }
+
+            // Get the current affine matrix and constant (from last construct)
+            if (!window.lastConstructionData || !window.lastConstructionData.affine_matrix) {
+                alert('Please construct an S-Box first before checking specific inputs');
+                return;
+            }
+
+            // Show loading
+            checkSpecificInputBtn.disabled = true;
+            checkSpecificInputBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+            try {
+                // Call backend to get construction steps for this specific input
+                const response = await fetch('/trace_input', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        input_value: inputValue,
+                        affine_matrix: window.lastConstructionData.affine_matrix,
+                        c_constant: window.lastConstructionData.c_constant
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Failed to trace input');
+                }
+
+                const specificStep = data.construction_step;
+
+                // Display the construction process for this specific input
+                resultDiv.innerHTML = '';
+                resultDiv.classList.remove('hidden');
+
+                const stepCard = document.createElement('div');
+                stepCard.className = 'step-card';
+                stepCard.style.animation = 'fadeIn 0.5s ease';
+
+                const matrixHtml = renderMatrix(window.lastConstructionData.affine_matrix);
+                const invVecHtml = renderVector(specificStep.inverse_vector);
+                const resVecHtml = renderVector(specificStep.matrix_mult_result);
+                const constVecHtml = renderVector(specificStep.constant);
+                const finalVecHtml = renderVector(specificStep.final_vector);
+
+                // Build row-by-row details
+                let rowDetailsHtml = '';
+                specificStep.matrix_rows_detail.forEach((rowDetail, idx) => {
+                    const dotProductStr = rowDetail.dot_products.map((val, i) => {
+                        return `(${rowDetail.row[i]} × ${rowDetail.vector[i]} = ${val})`;
+                    }).join(' + ');
+
+                    rowDetailsHtml += `
+                    <div class="row-detail">
+                        <strong>Row ${idx}:</strong><br>
+                        [${rowDetail.row.join(', ')}] · [${rowDetail.vector.join(', ')}]<br>
+                        = ${dotProductStr}<br>
+                        = ${rowDetail.sum} mod 2 = <strong>${rowDetail.result_bit}</strong>
+                    </div>
+                `;
+                });
+
+                // Build XOR table
+                let xorTableHtml = `
+                <table class="calc-table">
+                    <thead>
+                        <tr>
+                            <th>Bit</th>
+                            <th>Matrix Result</th>
+                            <th>C_AES</th>
+                            <th>XOR (mod 2)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+                specificStep.xor_details.forEach(xor => {
+                    xorTableHtml += `
+                    <tr>
+                        <td>b${xor.index}</td>
+                        <td>${xor.matrix_bit}</td>
+                        <td>${xor.constant_bit}</td>
+                        <td><strong>${xor.result_bit}</strong></td>
+                    </tr>
+                `;
+                });
+                xorTableHtml += `
+                    </tbody>
+                </table>
+            `;
+
+                stepCard.innerHTML = `
+                <div class="step-header" style="background: linear-gradient(135deg, rgba(0, 242, 255, 0.15), rgba(112, 0, 255, 0.1)); font-size: 1.1rem;">
+                    Construction Process for Input: ${specificStep.input} → Output: ${specificStep.output}
+                </div>
+                <div class="step-body">
+                    <div style="background: rgba(0, 242, 255, 0.1); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid var(--primary-color);">
+                        <strong style="color: var(--primary-color);">Summary:</strong> Input <strong>${specificStep.input}</strong> (0x${specificStep.input.toString(16).toUpperCase().padStart(2, '0')}) → Output <strong>${specificStep.output}</strong> (0x${specificStep.output.toString(16).toUpperCase().padStart(2, '0')})
+                    </div>
+                    
+                    <div class="step-item">
+                        <span class="step-label">Step 1: Multiplicative Inverse in GF(2^8)</span>
+                        <div class="step-value" style="margin-top: 0.5rem; font-size: 1.1rem;">
+                            GF_Inverse(${specificStep.input}) = <strong>${specificStep.inverse}</strong> (0x${specificStep.inverse.toString(16).toUpperCase().padStart(2, '0')}, 0b${specificStep.inverse_binary})
+                        </div>
+                        <div class="verification-box">
+                            ✓ Verification: ${specificStep.input} × ${specificStep.inverse} = ${specificStep.inverse_verification} (mod 0x11B) in GF(2^8)
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-label">Step 2: Affine Transformation (Matrix Multiplication)</span>
+                        <div class="step-explanation">K × X⁻¹ = Result (mod 2)</div>
+                        <div class="math-container">
+                            ${matrixHtml}
+                            <div class="math-operator">×</div>
+                            ${invVecHtml}
+                            <div class="math-operator">=</div>
+                            ${resVecHtml}
+                        </div>
+
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: var(--primary-color); font-weight: 600;">Show detailed row-by-row calculation</summary>
+                            <div style="margin-top: 1rem;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: var(--primary-color);">Row-by-Row Dot Product Calculation:</h4>
+                                ${rowDetailsHtml}
+                                <div style="margin-top: 1rem; padding: 0.5rem; background: rgba(52, 152, 219, 0.1); border-radius: 4px;">
+                                    <strong>Final Result:</strong> [${specificStep.matrix_mult_result.join(', ')}]
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="step-item">
+                        <span class="step-label">Step 3: Add Constant C_AES (XOR / mod 2  addition)</span>
+                        <div class="step-explanation">Result + C_AES = Final Output (mod 2)</div>
+                        <div class="math-container">
+                            ${resVecHtml}
+                            <div class="math-operator">⊕</div>
+                            ${constVecHtml}
+                            <div class="math-operator">=</div>
+                            ${finalVecHtml}
+                        </div>
+
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; color: var(--primary-color); font-weight: 600;">Show XOR bit-by-bit</summary>
+                            <div style="margin-top: 1rem;">
+                                ${xorTableHtml}
+                            </div>
+                        </details>
+                    </div>
+
+                    <div style="background: linear-gradient(135deg, rgba(0, 242, 255, 0.1), rgba(16, 185, 129, 0.1)); padding: 1.5rem; border-radius: 0.75rem; margin-top: 1.5rem; border: 2px solid rgba(0, 242, 255, 0.3);">
+                        <h4 style="margin: 0 0 1rem 0; color: var(--primary-color);">
+                            <i class="fas fa-check-circle"></i> Final Result
+                        </h4>
+                        <div style="font-size: 1.2rem;">
+                            <strong>Input ${specificStep.input}</strong> (0x${specificStep.input.toString(16).toUpperCase().padStart(2, '0')}) 
+                            → 
+                            <strong style="color: #10b981;">Output ${specificStep.output}</strong> (0x${specificStep.output.toString(16).toUpperCase().padStart(2, '0')})
+                        </div>
+                        <div style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-muted);">
+                            Binary: 0b${specificStep.input_binary} → 0b${specificStep.output_binary}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+                resultDiv.appendChild(stepCard);
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            } catch (error) {
+                console.error('Error tracing input:', error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                // Restore button state
+                checkSpecificInputBtn.disabled = false;
+                checkSpecificInputBtn.innerHTML = '<i class="fas fa-play"></i> Trace Construction';
+            }
+        });
+    }
+
 
     function displayEncryptionProcess(traceData) {
         const processContainer = document.getElementById('encryption-process');
@@ -1008,8 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stateLabel.style.color = 'var(--text-muted)';
 
             const stateGrid = document.createElement('div');
-            stateGrid.className = 'grid-container-small';
-            stateGrid.style.maxWidth = '200px';
+            stateGrid.className = 'state-grid-4x4';
 
             for (let r = 0; r < 4; r++) {
                 for (let c = 0; c < 4; c++) {
@@ -1041,8 +1343,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 keyLabel.style.color = 'var(--text-muted)';
 
                 const keyGrid = document.createElement('div');
-                keyGrid.className = 'grid-container-small';
-                keyGrid.style.maxWidth = '200px';
+                keyGrid.className = 'state-grid-4x4';
 
                 for (let r = 0; r < 4; r++) {
                     for (let c = 0; c < 4; c++) {
@@ -1354,32 +1655,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function runAvalancheCheck(flippedIdx) {
-        const type = sboxSelect.value;
-        const customSbox = document.getElementById('custom-sbox').value;
-        const text = textInput.value || 'Wait is this real?';
-        const key = encryptionKeyInput.value;
-
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('custom_sbox', customSbox);
-        formData.append('text_input', text);
-        formData.append('key', key);
-        formData.append('flipped_bit_idx', flippedIdx);
+        // [MODIFIED] Client-Side Avalanche Check
+        const customSbox = window.currentSBox;
+        const textStr = textInput.value || 'Wait is this real?';
+        const keyStr = encryptionKeyInput.value || '000102030405060708090a0b0c0d0e0f';
 
         try {
-            const response = await fetch('/avalanche_check', {
-                method: 'POST',
-                body: formData
-            });
+            const aes = new AES_Client(keyStr, customSbox);
 
-            const data = await response.json();
-            if (!response.ok) return;
+            // 1. Get Base Ciphertext
+            // Need to handle text input padding correctly to get the FIRST block
+            // AES_Client.encryptText returns flat hex. 
+            // We need raw bytes of the first block.
+
+            // Helper to get first 128-bit block from string
+            const encoder = new TextEncoder();
+            let bytes = Array.from(encoder.encode(textStr));
+            // Pad if less than 16 (or take first 16 if more)
+            if (bytes.length < 16) {
+                const padding = 16 - (bytes.length % 16);
+                for (let i = 0; i < padding; i++) bytes.push(padding);
+            }
+            const block0 = bytes.slice(0, 16); // Only analyze first block
+
+            // Encrypt Original
+            const c0 = aes.encryptBlock(block0);
+
+            // 2. Flip Bit in Input
+            const blockModified = [...block0];
+            const byteIdx = Math.floor(flippedIdx / 8);
+            const bitOffset = 7 - (flippedIdx % 8); // Big Endian bits usually in visualization?
+            // Actually existing grid runs 0..127. 
+            // Let's assume bit 0 is Byte 0 Bit 7 (MSB) or Bit 0 (LSB)?
+            // Standard naming: Bit 0 is usually MSB of Byte 0 in crypto diagrams, but let's match existing UI logic.
+            // Existing UI toggles simple array.
+
+            blockModified[byteIdx] ^= (1 << bitOffset);
+
+            // Encrypt Modified
+            const c1 = aes.encryptBlock(blockModified);
+
+            // 3. Calculate Diff
+            let changedCount = 0;
+            const diffBits = [];
+
+            for (let i = 0; i < 16; i++) {
+                const diffByte = c0[i] ^ c1[i];
+                for (let b = 0; b < 8; b++) {
+                    if ((diffByte >> (7 - b)) & 1) { // Check bits high to low
+                        changedCount++;
+                        diffBits.push(i * 8 + b);
+                    }
+                }
+            }
+
+            const percent = (changedCount / 128) * 100;
 
             // Update Stats
             const countEl = document.getElementById('avalanche-count');
             const percentEl = document.getElementById('avalanche-percent');
-            if (countEl) countEl.textContent = data.changed_count;
-            if (percentEl) percentEl.textContent = data.percent.toFixed(2) + '%';
+            if (countEl) countEl.textContent = changedCount;
+            if (percentEl) percentEl.textContent = percent.toFixed(2) + '%';
 
             // Update Output Grid
             const outBits = avalancheOutputGrid.children;
@@ -1389,25 +1725,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 outBits[i].classList.remove('changed');
             }
 
-            data.diff_bits.forEach(bitIdx => {
+            diffBits.forEach(bitIdx => {
                 if (bitIdx < 128) {
                     outBits[bitIdx].classList.add('changed');
                 }
             });
 
-            // Animate
-            if (typeof anime !== 'undefined') {
-                anime({
-                    targets: '.interactive-bit.changed',
-                    scale: [1.5, 1],
-                    backgroundColor: ['#ef4444', '#ef4444'], // Red flash
-                    duration: 300,
-                    easing: 'easeOutQuad'
-                });
-            }
+            // Animate (Optional, usually too fast for animejs on every click, but ok)
+            /*
+           if (typeof anime !== 'undefined') {
+               anime({
+                   targets: '.interactive-bit.changed',
+                   scale: [1.5, 1],
+                   direction: 'alternate',
+                   duration: 200
+               });
+           }
+           */
 
         } catch (e) {
-            console.error(e);
+            console.error("Avalanche Check Error:", e);
         }
     }
 
@@ -1582,3 +1919,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
+// ==========================================
+// 4. (REMOVED) INTERACTIVE TUTORIAL / TOUR
+// ==========================================
+
+
+// ==========================================
+// 5. ADVANCED AVALANCHE VISUALIZATION
+// ==========================================
+const avRoundSlider = document.getElementById('av-round-slider');
+const avRoundDisplay = document.getElementById('av-round-display');
+
+if (avRoundSlider) {
+    avRoundSlider.addEventListener('input', (e) => {
+        const round = parseInt(e.target.value);
+        if (avRoundDisplay) avRoundDisplay.textContent = round;
+        updateAvalancheVisualization(round);
+    });
+}
+
+function updateAvalancheVisualization(round) {
+    // Requires window.lastTrace (from encryptBtn)
+    if (!window.lastTrace) return;
+
+    // Find trace data for this round
+    // round 0 = start state
+    // round 1-10 = finalState of that round
+
+    let state = null;
+
+    if (round === 0) {
+        // Init state
+        const t0 = window.lastTrace.find(t => t.round === 0);
+        state = t0 ? (t0.finalState || t0.start) : null;
+    } else {
+        const t = window.lastTrace.find(t => t.round === round);
+        state = t ? t.finalState : null;
+    }
+
+    if (state) {
+        renderAvalancheGrid(state);
+    }
+}
+
+function renderAvalancheGrid(state) {
+    const grid = document.getElementById('av-state-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    // state is 16 bytes
+    state.forEach((val, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell-small';
+        cell.textContent = val.toString(16).toUpperCase().padStart(2, '0');
+
+        // Heatmap Coloring (Value magnitude)
+        const intensity = val / 255;
+        cell.style.backgroundColor = `rgba(37, 99, 235, ${0.1 + intensity * 0.5})`;
+        cell.style.borderColor = `rgba(37, 99, 235, ${0.3 + intensity * 0.7})`;
+
+        grid.appendChild(cell);
+    });
+
+    // Update bit stats (Dummy for now, real calc needs diff)
+    const statsEl = document.getElementById('av-bit-stats');
+    if (statsEl) statsEl.textContent = 'N/A'; // Need diff for changes
+}
+
+const toGrid = (arr) => {
+    const grid = [];
+    for (let r = 0; r < 4; r++) {
+        const row = [];
+        for (let c = 0; c < 4; c++) row.push(arr[r + c * 4]); // Column-Major mapping (standard AES)
+        grid.push(row);
+    }
+    return grid;
+};

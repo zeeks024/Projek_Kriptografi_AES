@@ -502,6 +502,58 @@ def construct():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/trace_input', methods=['POST'])
+def trace_input():
+    """
+    Trace construction process for a specific input value.
+    Expects JSON with:
+    - input_value: integer (0-255)
+    - affine_matrix: 8x8 array (list of lists)
+    - c_constant: 8-element array (optional, defaults to C_AES)
+    """
+    try:
+        data = request.json
+        input_value = data.get('input_value')
+        affine_matrix = data.get('affine_matrix')
+        c_constant = data.get('c_constant')
+        
+        if input_value is None:
+            return jsonify({'error': 'input_value is required.'}), 400
+        
+        if not isinstance(input_value, int) or input_value < 0 or input_value > 255:
+            return jsonify({'error': 'input_value must be an integer between 0 and 255.'}), 400
+        
+        if not affine_matrix:
+            return jsonify({'error': 'affine_matrix is required.'}), 400
+        
+        # Validate matrix dimensions
+        if len(affine_matrix) != 8:
+            return jsonify({'error': 'Affine matrix must have 8 rows.'}), 400
+        for row in affine_matrix:
+            if len(row) != 8:
+                return jsonify({'error': 'Each row must have 8 elements.'}), 400
+            if any(val not in [0, 1] for val in row):
+                return jsonify({'error': 'Matrix elements must be 0 or 1.'}), 400
+        
+        # Validate constant if provided
+        if c_constant:
+            if len(c_constant) != 8:
+                return jsonify({'error': 'Constant must have 8 elements.'}), 400
+            if any(val not in [0, 1] for val in c_constant):
+                return jsonify({'error': 'Constant elements must be 0 or 1.'}), 400
+        
+        # Get construction steps for this specific input
+        steps = get_construction_steps(input_value, affine_matrix, c_constant)
+        
+        return jsonify({
+            'success': True,
+            'input_value': input_value,
+            'construction_step': steps
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def generate_sbox_excel(sbox_values):
     """
     Generate Excel file with S-Box in 16x16 grid format.

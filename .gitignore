@@ -15,3 +15,10 @@ venv/
 
 # Temporary
 *.log
+
+# Testing
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/

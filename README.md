@@ -1,5 +1,13 @@
 # Analisis & Konstruksi S-Box AES Berbasis Web
 
+> **⚠️ COPYRIGHT NOTICE**  
+> **Author:** Arzak  
+> **Academic Project** - Universitas [Nama Universitas Anda]  
+> **Year:** 2024  
+> 
+> This project is protected by copyright. Unauthorized copying, distribution, or commercial use is strictly prohibited.  
+> For educational reference only.
+
 Aplikasi ini adalah alat bantu pembelajaran dan analisis untuk algoritma kriptografi AES (Advanced Encryption Standard), dengan fokus khusus pada komponen S-Box.
 
 ## Fitur
