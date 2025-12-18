@@ -26,6 +26,22 @@
         </div>
     </div>
     
+    <!-- Mobile Warning Overlay -->
+    <div id="mobile-warning" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; padding: 2rem;">
+        <div class="glass-panel" style="max-width: 400px; text-align: center; border: 1px solid rgba(255, 193, 7, 0.3); box-shadow: 0 0 30px rgba(255, 193, 7, 0.1);">
+            <div style="font-size: 3rem; color: #FFC107; margin-bottom: 1rem;">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <h2 style="color: #FFC107; margin-bottom: 1rem; font-family: 'Inter', sans-serif;">Desktop View Recommended</h2>
+            <p style="color: var(--text-color); opacity: 0.9; margin-bottom: 2rem; line-height: 1.6;">
+                This application is optimized for desktop usage. For the best experience, please use a larger screen or switch to <strong>Desktop Mode</strong> on your device.
+            </p>
+            <button id="close-mobile-warning" class="btn primary-btn" style="background: rgba(255, 193, 7, 0.2); border-color: #FFC107; color: #FFC107; width: 100%;">
+                I Understand, Continue
+            </button>
+        </div>
+    </div>
+    
     <!-- Dynamic Background: Stagger Visualizer -->
     <div class="stagger-visualizer"></div>
 

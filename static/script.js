@@ -1,4 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ========== 0. MOBILE WARNING CHECK ==========
+    const mobileWarning = document.getElementById('mobile-warning');
+    const closeMobileWarningBtn = document.getElementById('close-mobile-warning');
+
+    if (mobileWarning && closeMobileWarningBtn) {
+        // Check if screen width is less than 768px (standard mobile/tablet breakpoint)
+        if (window.innerWidth < 768) {
+            mobileWarning.classList.remove('hidden');
+            // Ensure it uses flex when visible (overriding hidden's display: none)
+            mobileWarning.style.display = 'flex';
+        } else {
+            // Ensure it is hidden on desktop (in case of resize loops or cache)
+            mobileWarning.style.display = 'none';
+        }
+
+        closeMobileWarningBtn.addEventListener('click', () => {
+            mobileWarning.style.opacity = '0';
+            mobileWarning.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                mobileWarning.style.display = 'none';
+            }, 500);
+        });
+    }
+
     // ========== 1. MAIN TAB NAVIGATION ==========
     const mainTabBtns = document.querySelectorAll('.nav-tab-btn');
     const mainTabPanels = document.querySelectorAll('.main-tab-panel');
