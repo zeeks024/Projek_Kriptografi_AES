@@ -738,7 +738,7 @@ def get_lat_table(sbox):
     return lat
 
 
-def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text'):
+def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text', max_dim=None):
     """
     Encrypts image bytes using either AES-ECB mode or Pure S-Box Substitution.
     Returns: 
@@ -757,10 +757,10 @@ def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text'):
         img = Image.open(io.BytesIO(image_bytes))
         img = img.convert('RGB') # Ensure RGB
         
-        # Optimize: Resize image if too large (Pure Python AES is slow)
-        max_dim = 256
-        if img.width > max_dim or img.height > max_dim:
-            img.thumbnail((max_dim, max_dim))
+        # Optimize: Resize image if max_dim is specified
+        if max_dim:
+            if img.width > max_dim or img.height > max_dim:
+                img.thumbnail((max_dim, max_dim))
             
         width, height = img.size
         
@@ -1066,3 +1066,49 @@ def calculate_uaci(image1_bytes, image2_bytes):
     except Exception as e:
         print(f"Error calculating UACI: {e}")
         return 0
+
+def calculate_sensitivity_metrics(image1_bytes, image2_bytes):
+    """
+    Calculates both NPCR and UACI efficiently in one pass.
+    Returns: (npcr, uaci)
+    """
+    try:
+        from PIL import Image
+        import io
+        import numpy as np
+
+        img1 = Image.open(io.BytesIO(image1_bytes)).convert('RGB')
+        img2 = Image.open(io.BytesIO(image2_bytes)).convert('RGB')
+        
+        if img1.size != img2.size:
+            return 0, 0
+            
+        # Use int16 to prevent overflow during subtraction, but minimize memory compared to float32
+        arr1 = np.array(img1, dtype=np.int16)
+        arr2 = np.array(img2, dtype=np.int16)
+        
+        height, width, channels = arr1.shape
+        total_pixels = height * width * channels
+        
+        # Calculate absolute difference once
+        diff = np.abs(arr1 - arr2)
+        
+        # UACI: Mean unified absolute change
+        uaci = (np.sum(diff) / (255 * total_pixels)) * 100
+        
+        # NPCR: Count of changed pixels (where diff > 0)
+        # We check per pixel-channel. Standard NPCR usually checks if pixel location (any channel) is different?
+        # Standard NPCR def: D(i,j) = 0 if C1(i,j) == C2(i,j), else 1.
+        # If we adhere strictly to pixel-wise (not channel-wise), we should check if ANY channel diff > 0.
+        # But commonly in RGB implementations it's done per-value or per-pixel.
+        # Looking at previous calculate_npcr implementation:
+        # diff = np.sum(arr1 != arr2) <- This was element-wise (channel-wise) count.
+        # So we stick to channel-wise count for consistency.
+        changed_pixels_count = np.count_nonzero(diff)
+        npcr = (changed_pixels_count / total_pixels) * 100
+        
+        return float(npcr), float(uaci)
+
+    except Exception as e:
+        print(f"Error calculating sensitivity metrics: {e}")
+        return 0, 0

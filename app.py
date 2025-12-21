@@ -5,7 +5,7 @@ from sbox_analyzer import (get_sbox, check_bijective, check_balance, calculate_n
                            calculate_transparency_order, calculate_correlation_immunity,
                            get_ddt_table, get_lat_table, 
                            encrypt_image_data, decrypt_image_data, construct_sbox_from_matrix, 
-                           calculate_entropy, calculate_npcr, calculate_uaci,
+                           calculate_entropy, calculate_npcr, calculate_uaci, calculate_sensitivity_metrics,
                            get_construction_steps, AES_SBOX, SBOX_44)
 from aes_cipher import AESCipher
 from aes import AESInput, build_workbook, list16_to_matrix4x4_columnmajor
@@ -518,15 +518,24 @@ def analyze_image_sensitivity():
         img.save(buf, format='PNG')
         processed_image_bytes = buf.getvalue()
         
+        # RESIZE IMAGE FOR SAFETY (Prevent Timeout/OOM on Deployment)
+        img.thumbnail((256, 256)) # Max 256px dimension
+        
+        # Save processed (resized) image to bytes
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        processed_image_bytes = buf.getvalue()
+        
         # 1. Encrypt Original (Processed) -> C1
-        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format)
+        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=256)
         
         # 2. Calculate Entropy
         original_entropy = calculate_entropy(processed_image_bytes)
         encrypted_entropy = calculate_entropy(c1_bytes_raw)
         
         # 3. Modify Image (Flip 1 bit of processed image) -> P2
-        arr = np.array(img)
+        # Re-open modified image from bytes to ensure consistency
+        arr = np.array(Image.open(io.BytesIO(processed_image_bytes)))
         # Flip LSB of first pixel
         arr_mod = arr.copy()
         arr_mod[0,0,0] ^= 1 
@@ -537,11 +546,10 @@ def analyze_image_sensitivity():
         image_mod_bytes = buf_mod.getvalue()
         
         # 4. Encrypt Modified -> C2
-        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format)
+        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format, max_dim=256)
         
-        # 5. Calculate Metrics (NPCR & UACI)
-        npcr = calculate_npcr(c1_bytes_raw, c2_bytes_raw)
-        uaci = calculate_uaci(c1_bytes_raw, c2_bytes_raw)
+        # 5. Calculate Metrics (NPCR & UACI) efficient pass
+        npcr, uaci = calculate_sensitivity_metrics(c1_bytes_raw, c2_bytes_raw)
         
         return jsonify({
             'original_entropy': original_entropy,
