@@ -823,6 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 presetButtons.forEach(b => b.classList.remove('active'));
                 currentMatrix = JSON.parse(JSON.stringify(item.matrix));
+                window.currentMatrixName = item.name; // Store matrix name for download
                 loadMatrixEditor(currentMatrix);
                 matrixEditor.classList.remove('hidden');
             };
@@ -1462,7 +1463,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sbox: constructedSbox
+                        sbox: constructedSbox,
+                        matrix_name: window.currentMatrixName || 'Custom'
                     })
                 });
 
@@ -1476,11 +1478,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Trigger download
                 const blob = await response.blob();
+
+                // Get filename from Content-Disposition header or use default
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'Sbox_Custom.xlsx';
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.setAttribute('download', 'sbox_constructed.xlsx');
+                a.setAttribute('download', filename);
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
