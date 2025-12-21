@@ -395,13 +395,14 @@ def encrypt_image(image_bytes, sbox):
 
 # --- S-Box Construction Functions ---
 
-def construct_sbox_from_matrix(affine_matrix: list, c_constant: list = None) -> np.ndarray:
+def construct_sbox_from_matrix(affine_matrix: list, c_constant: list = None, mod_poly: int = 0x11B) -> np.ndarray:
     """
     Construct S-box from affine matrix using AES construction method.
     
     Args:
         affine_matrix: 8x8 matrix (list of lists or numpy array)
-        c_constant: 8-bit constant vector (default: C_AES = [1,1,0,0,0,0,1,0])
+        c_constant: 8-bit constant vector (default: C_AES = [1,1,0,0,0,1,1,0])
+        mod_poly: Irreducible polynomial for GF(2^8) (default: 0x11B)
     
     Returns:
         256-element S-box as numpy array
@@ -416,7 +417,7 @@ def construct_sbox_from_matrix(affine_matrix: list, c_constant: list = None) -> 
     # Generate inverse table
     inv_table = np.zeros(256, dtype=np.uint8)
     for i in range(256):
-        inv_table[i] = _gf_inverse(i)
+        inv_table[i] = _gf_inverse(i, mod_poly)
     
     # Construct S-box
     sbox = np.zeros(256, dtype=np.uint8)
@@ -432,18 +433,17 @@ def construct_sbox_from_matrix(affine_matrix: list, c_constant: list = None) -> 
     
     return sbox
 
-def _gf_inverse(a: int) -> int:
+def _gf_inverse(a: int, mod_poly: int = 0x11B) -> int:
     """Compute multiplicative inverse in GF(2^8)."""
     if a == 0:
         return 0
     for x in range(1, 256):
-        if _gf_multiply(a, x) == 1:
+        if _gf_multiply(a, x, mod_poly) == 1:
             return x
     return 0
 
-def _gf_multiply(a: int, b: int) -> int:
-    """Multiply two elements in GF(2^8) with modulus 0x11B."""
-    irreducible_poly = 0x11B
+def _gf_multiply(a: int, b: int, mod_poly: int = 0x11B) -> int:
+    """Multiply two elements in GF(2^8) with specified modulus."""
     result = 0
     aa = a & 0xFF
     bb = b & 0xFF
@@ -454,7 +454,7 @@ def _gf_multiply(a: int, b: int) -> int:
         carry = aa & 0x80
         aa = (aa << 1) & 0xFF
         if carry:
-            aa ^= (irreducible_poly & 0xFF)
+            aa ^= (mod_poly & 0xFF)
     return result & 0xFF
 
 def _int_to_binary_vector(value: int) -> np.ndarray:
@@ -738,7 +738,7 @@ def get_lat_table(sbox):
     return lat
 
 
-def encrypt_image_data(image_bytes, sbox, key, mode='ecb'):
+def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text'):
     """
     Encrypts image bytes using either AES-ECB mode or Pure S-Box Substitution.
     Returns: 
@@ -789,15 +789,67 @@ def encrypt_image_data(image_bytes, sbox, key, mode='ecb'):
             img_bytes = img.tobytes()
             original_len = len(img_bytes)
             
+            # Sanitize Key based on Format
+            if isinstance(key, str):
+                try:
+                    if key_format == 'hex':
+                        key = bytes.fromhex(key)
+                    else:
+                        key = key.encode('utf-8')
+                except Exception as e:
+                    print(f"Key Error: {e}")
+                    key = key.encode('utf-8') # Fallback
+            
+            # Ensure key length (16, 24, 32)
+            if len(key) not in [16, 24, 32]:
+                if len(key) < 16: key += b'\0' * (16 - len(key))
+                elif len(key) < 24: key = key[:16]
+                elif len(key) < 32: key = key[:24]
+                else: key = key[:32]
+
             # Encrypt using robust AESCipher
             cipher = AESCipher(key, sbox)
-            encrypted_bytes_padded = cipher.encrypt_data(img_bytes)
             
-            # Truncate to original size for display purposes
-            encrypted_bytes_raw = encrypted_bytes_padded[:original_len]
+            if mode == 'cbc':
+                # Manual CBC Implementation
+                # 1. Generate IV
+                import os
+                iv = os.urandom(16)
+                
+                # 2. Pad Data
+                pad_len = 16 - (len(img_bytes) % 16)
+                padded_data = img_bytes + bytes([pad_len] * pad_len)
+                
+                # 3. Encrypt Chain
+                encrypted_data = bytearray()
+                prev_block = list(iv)
+                
+                for i in range(0, len(padded_data), 16):
+                    block = list(padded_data[i:i+16])
+                    # XOR with prev_block
+                    xored_block = [b ^ p for b, p in zip(block, prev_block)]
+                    # Encrypt
+                    enc_block = cipher.encrypt_block(xored_block)
+                    encrypted_data.extend(enc_block)
+                    prev_block = enc_block
+                    
+                # Prepend IV to result
+                encrypted_bytes_padded = iv + bytes(encrypted_data)
+                
+            else:
+                # AES-ECB Mode (Default)
+                encrypted_bytes_padded = cipher.encrypt_data(img_bytes)
+            
+            # Truncate to original size for display purposes (Just for visualization length match)
+            # ERROR: If we truncate, we lose data. But for 'encrypted_bytes_raw' intended for NPCR,
+            # we should return the FULL ciphertext.
+            # However, for Image.frombytes visualization, length must match width*height*3.
+            # So we slice for visualization, but return full for analysis.
+            encrypted_bytes_raw = bytes(encrypted_bytes_padded)
+            visualization_bytes = encrypted_bytes_raw[:original_len]
             
             # Create Encrypted Image
-            img_enc = Image.frombytes('RGB', (width, height), encrypted_bytes_raw)
+            img_enc = Image.frombytes('RGB', (width, height), visualization_bytes)
             
         
         # Calculate Encrypted Histogram
@@ -813,15 +865,172 @@ def encrypt_image_data(image_bytes, sbox, key, mode='ecb'):
         img_enc.save(buf, format='PNG')
         encrypted_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
         
-        return encrypted_b64, hist_orig, hist_enc
+        return encrypted_b64, hist_orig, hist_enc, buf.getvalue()
         
     except ImportError as e:
         print(f"ImportError: {e}")
-        return None, {}, {}
+        return None, {}, {}, None
     except Exception as e:
         print(f"Error encrypting image: {e}")
         import traceback
         traceback.print_exc()
-        return None, {}, {}
+        return None, {}, {}, None
 
 
+
+def decrypt_image_data(encrypted_image_bytes, sbox, key, mode='ecb', key_format='text'):
+    """
+    Decrypts image bytes using either AES-ECB mode or Pure S-Box Substituion (Inverse).
+    """
+    try:
+        from PIL import Image
+        import io
+        import numpy as np
+        from aes_cipher import AESCipher # Local import
+        import base64
+
+        img_enc = Image.open(io.BytesIO(encrypted_image_bytes))
+        img_enc = img_enc.convert('RGB')
+        width, height = img_enc.size
+        
+        if mode == 'substitution':
+            # Inverse Substitution
+            inv_sbox = get_inverse_sbox(sbox)
+            inv_sbox_arr = np.array(inv_sbox, dtype=np.uint8)
+            pixels = np.array(img_enc)
+            decrypted_pixels = inv_sbox_arr[pixels]
+            img_dec = Image.fromarray(decrypted_pixels)
+            
+        else:
+            # AES Decryption
+            # For visualization, we re-read the image bytes.
+            # Real AES needs original padded stream.
+            img_bytes = img_enc.tobytes()
+            
+            # Sanitize Key based on Format
+            if isinstance(key, str):
+                try:
+                    if key_format == 'hex':
+                        key = bytes.fromhex(key)
+                    else:
+                        key = key.encode('utf-8')
+                except:
+                    key = key.encode('utf-8')
+            
+            if len(key) not in [16, 24, 32]:
+                 if len(key) < 16: key += b'\0' * (16 - len(key))
+                 elif len(key) < 24: key = key[:16]
+                 elif len(key) < 32: key = key[:24]
+                 else: key = key[:32]
+
+            cipher = AESCipher(key, sbox)
+            
+            if mode == 'cbc':
+                # Manual CBC Decryption
+                # Note: 'img_bytes' here comes from img_enc.tobytes().
+                # This only contains the visible pixels.
+                # If encryption truncated the padding/tail, we can't fully decrypt the last block.
+                # But we try our best.
+                
+                # We assume IV was prepended and is part of the pixel data (first 16 bytes).
+                if len(img_bytes) < 16:
+                     decrypted_bytes_padded = b''
+                else:
+                    iv = list(img_bytes[:16])
+                    ciphertext = img_bytes[16:]
+                    
+                    decrypted_data = bytearray()
+                    prev_block = iv
+                    
+                    for i in range(0, len(ciphertext), 16):
+                        block = list(ciphertext[i:i+16])
+                        # If block is incomplete (truncation), we skip it or pad it?
+                        # Truncated last block implies we can't decrypt it securely.
+                        if len(block) < 16: break 
+                        
+                        dec_block = cipher.decrypt_block(block)
+                        xored_block = [d ^ p for d, p in zip(dec_block, prev_block)]
+                        decrypted_data.extend(xored_block)
+                        prev_block = block
+                    
+                    decrypted_bytes_padded = bytes(decrypted_data)
+            else:
+                # AES-ECB Mode (Default)
+                decrypted_bytes_padded = cipher.decrypt_data(img_bytes)
+            
+            # Create Decrypted Image (Truncate to expected size)
+            target_len = width * height * 3
+            if len(decrypted_bytes_padded) < target_len:
+                decrypted_bytes_padded += b'\0' * (target_len - len(decrypted_bytes_padded))
+            
+            img_dec = Image.frombytes('RGB', (width, height), decrypted_bytes_padded[:target_len])
+
+        # Convert to Base64
+        output_buffer = io.BytesIO()
+        img_dec.save(output_buffer, format='PNG')
+        decrypted_b64 = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
+        
+        return decrypted_b64
+
+    except Exception as e:
+        print(f"Error in decrypt_image_data: {e}")
+        return None
+
+def calculate_entropy(image_bytes):
+    """
+    Calculates Shannon Entropy of an image.
+    H = -sum(p_i * log2(p_i))
+    Target ideal value ~ 8.
+    """
+    try:
+        from PIL import Image
+        import io
+        import math
+        import numpy as np
+
+        img = Image.open(io.BytesIO(image_bytes))
+        # Usually for image encryption papers, calculat on grayscale.
+        gray_img = img.convert('L')
+        hist = np.histogram(np.array(gray_img), bins=256, range=(0,256))[0]
+        
+        total_pixels = sum(hist)
+        entropy = 0
+        for count in hist:
+            if count > 0:
+                p = count / total_pixels
+                entropy -= p * math.log2(p)
+                
+        return entropy
+
+    except Exception as e:
+        print(f"Error calculating entropy: {e}")
+        return 0
+
+def calculate_npcr(image1_bytes, image2_bytes):
+    """
+    Calculates Number of Pixels Change Rate (NPCR).
+    """
+    try:
+        from PIL import Image
+        import io
+        import numpy as np
+
+        img1 = Image.open(io.BytesIO(image1_bytes)).convert('RGB')
+        img2 = Image.open(io.BytesIO(image2_bytes)).convert('RGB')
+        
+        if img1.size != img2.size:
+            return 0
+            
+        arr1 = np.array(img1)
+        arr2 = np.array(img2)
+        
+        height, width, _ = arr1.shape
+        # Count diffs
+        diff = np.sum(arr1 != arr2)
+        npcr = (diff / (height * width * 3)) * 100
+        
+        return npcr
+
+    except Exception as e:
+        print(f"Error calculating NPCR: {e}")
+        return 0

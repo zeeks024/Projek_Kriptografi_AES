@@ -110,6 +110,18 @@
                     <p class="section-desc"><i class="fas fa-info-circle"></i> Construct custom S-boxes using affine matrix transformation as described in the research paper</p>
                     
                     <div class="constructor-controls">
+                        <!-- Research Method Selector -->
+                        <div style="margin-bottom: 2rem; background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; border: 1px solid rgba(37, 99, 235, 0.2);">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--primary-color);">Select Research Method (Polynomial):</label>
+                            <select id="research-method-select" class="form-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color);">
+                                <option value="standard">Standard: x⁸ + x⁴ + x³ + x + 1 (0x11B)</option>
+                                <option value="paper2023">Research: x⁸ + x⁷ + x⁶ + x⁵ + x⁴ + x + 1 (0x1F3)</option>
+                            </select>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                                * Changing this affects the underlying Galois Field arithmetic and available matrices.
+                            </p>
+                        </div>
+
                         <h3>Step 1: Select or Edit Affine Matrix (8×8)</h3>
                         <div class="preset-buttons">
                             <button class="preset-btn" data-matrix="K4"><i class="fas fa-cube"></i> K4</button>
@@ -615,6 +627,24 @@
                         <h2><i class="fas fa-key"></i> Encryption & Decryption Demo</h2>
                         <span class="section-badge">AES-128</span>
                     </div>
+
+                    <!-- [NEW] Local S-Box Selection -->
+                    <div style="background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; border: 1px solid rgba(37, 99, 235, 0.2); display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--text-color);">Current S-Box Configuration:</label>
+                            <select id="text-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
+                                <option value="aes">🛡️ AES Standard (Default)</option>
+                                <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
+                                <option value="custom">✏️ Custom / Uploaded</option>
+                            </select>
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <input type="file" id="text-sbox-upload-file" accept=".xlsx,.xls" style="display: none;">
+                            <button id="text-sbox-upload-btn" class="btn secondary-btn" style="font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                <i class="fas fa-file-upload"></i> Upload S-Box (Excel)
+                            </button>
+                        </div>
+                    </div>
                     
 
                     <!-- Internal Sub-Tabs -->
@@ -639,8 +669,8 @@
                             </div>
                             
                             <div class="input-group">
-                                <label for="encryption-key-input">Encryption Key (Hex, 16 bytes):</label>
-                                <input type="text" id="encryption-key-input" placeholder="000102030405060708090a0b0c0d0e0f (default AES-128 key)" value="000102030405060708090a0b0c0d0e0f" style="font-family: 'JetBrains Mono', monospace;">
+                                <label for="encryption-key-input">Encryption Key</label>
+                                <input type="text" id="encryption-key-input" placeholder="Enter key (will be padded/truncated to 16 bytes)" value="This is a key123" style="font-family: 'JetBrains Mono', monospace;">
                             </div>
                             
                             <div class="button-group">
@@ -735,6 +765,25 @@
                     <div class="section-header">
                         <h2><i class="fas fa-image"></i> Image Encryption</h2>
                     </div>
+
+                    <!-- [NEW] Local S-Box Selection (Image) -->
+                    <div style="background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; border: 1px solid rgba(37, 99, 235, 0.2); display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--text-color);">Current S-Box Configuration:</label>
+                            <select id="image-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
+                                <option value="aes">🛡️ AES Standard (Default)</option>
+                                <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
+                                <option value="custom">✏️ Custom / Uploaded</option>
+                            </select>
+                        </div>
+                        <div style="flex: 0 0 auto;">
+                            <input type="file" id="image-sbox-upload-file" accept=".xlsx,.xls" style="display: none;">
+                            <button id="image-sbox-upload-btn" class="btn secondary-btn" style="font-size: 0.9rem; padding: 0.6rem 1rem;">
+                                <i class="fas fa-file-upload"></i> Upload S-Box (Excel)
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="image-enc-container">
                         <div class="file-upload-section" style="margin-bottom: 2rem; padding: 2rem; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; text-align: center;">
                             <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
@@ -752,10 +801,19 @@
                                         <span>AES-ECB <small style="opacity: 0.6;">(Standard)</small></span>
                                     </label>
                                     <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="radio" name="enc-mode" value="cbc"> 
+                                        <span>AES-CBC <small style="opacity: 0.6;">(High Diffusion)</small></span>
+                                    </label>
+                                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
                                         <input type="radio" name="enc-mode" value="substitution"> 
                                         <span>S-Box Only <small style="opacity: 0.6;">(Visual Analysis)</small></span>
                                     </label>
                                 </div>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; margin-bottom: 1.5rem; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-color);">Encryption Key</label>
+                                <input type="text" id="image-encryption-key" placeholder="Enter key (will be padded/truncated to 16 bytes)" value="This is a key123" style="width: 100%; padding: 0.75rem; border-radius: 4px; border: 1px solid #444; background: #222; color: white; font-family: monospace;">
                             </div>
                             
                             <button id="encrypt-image-btn" class="btn primary-btn" style="margin-top: 1.5rem; width: 100%;" disabled>
@@ -785,8 +843,59 @@
                                     <div class="chart-wrapper" style="margin-top: 1rem; height: 150px;">
                                         <canvas id="hist-enc"></canvas>
                                     </div>
+                                    <button id="download-encrypted-image-btn" class="btn secondary-btn" style="margin-top: 1rem; width: 100%; font-size: 0.9rem;">
+                                        <i class="fas fa-download"></i> Download Encrypted Image
+                                    </button>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Image Analysis Metrics (Entropy & NPCR) -->
+                        <div id="image-analysis-metrics" class="hidden" style="margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem;">
+                            <h3 style="margin-bottom: 1rem;"><i class="fas fa-stethoscope"></i> Image Sensitivity Analysis</h3>
+                            <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                                <div class="status-card">
+                                    <div class="card-icon"><i class="fas fa-random"></i></div>
+                                    <span class="label">Entropy (Ideal: ~8)</span>
+                                    <span id="img-entropy-value" class="status-value">-</span>
+                                </div>
+                                <div class="status-card">
+                                    <div class="card-icon"><i class="fas fa-percentage"></i></div>
+                                    <span class="label">NPCR (Ideal: >99.6%)</span>
+                                    <span id="img-npcr-value" class="status-value">-</span>
+                                </div>
+                            </div>
+                            <button id="run-deep-analysis-btn" class="btn secondary-btn" style="margin-top: 1rem; width: 100%;">
+                                <i class="fas fa-play-circle"></i> Run Deep Analysis (Entropy & NPCR)
+                            </button>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">* Deep analysis performs bit-flip tests/re-encryption and may take a few seconds.</p>
+                        </div>
+
+                        <!-- Image Decryption Section -->
+                        <div class="image-decryption-section" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                             <h3><i class="fas fa-unlock"></i> Image Decryption</h3>
+                             <div class="file-upload-section" style="margin-bottom: 2rem; padding: 2rem; border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; text-align: center;">
+                                <p style="color: var(--text-muted); margin-bottom: 1rem;">Upload Encrypted Image to Decrypt</p>
+                                <input type="file" id="encrypted-image-upload" accept="image/*" style="display: none;">
+                                <button id="select-encrypted-image-btn" class="btn secondary-btn">Select Encrypted Image</button>
+                                <div id="encrypted-image-file-name" style="margin-top: 1rem; font-weight: bold;"></div>
+                                
+                                <div style="margin-top: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-color); text-align: left;">Encryption Key</label>
+                                    <input type="text" id="decryption-key-input" placeholder="Enter key (will be padded/truncated to 16 bytes)" value="This is a key123" style="width: 100%; padding: 0.75rem; border-radius: 4px; border: 1px solid #444; background: #222; color: white;">
+                                </div>
+
+                                <button id="decrypt-image-btn" class="btn primary-btn" style="margin-top: 1.5rem; width: 100%; background: #8b5cf6;" disabled>
+                                    <i class="fas fa-unlock-alt"></i> Decrypt Image
+                                </button>
+                             </div>
+                             
+                             <div id="decryption-result" class="hidden" style="text-align: center;">
+                                <h4 style="color: #10b981; margin-bottom: 1rem;">Decrypted Image</h4>
+                                <div class="img-wrapper" style="width: 100%; max-width: 500px; margin: 0 auto; min-height: 200px; overflow: hidden; border-radius: 8px; background: #000;">
+                                    <img id="img-preview-decrypted" src="" style="width: 100%; height: auto;">
+                                </div>
+                             </div>
                         </div>
                     </div>
                 </section>
@@ -795,32 +904,96 @@
             <!-- TAB 5: ABOUT / RESEARCH -->
             <div id="tab-about" class="main-tab-panel">
                 <section class="glass-panel" style="padding: 4rem 2rem;">
-                    <div style="max-width: 800px; margin: 0 auto;">
-                        <div style="margin-bottom: 3rem; text-align: center;">
+                    <div style="max-width: 900px; margin: 0 auto;">
+                        <!-- Project Intro -->
+                        <div style="margin-bottom: 4rem; text-align: center;">
                             <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">The Research</h2>
-                            <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7;">
+                            <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7; max-width: 700px; margin: 0 auto;">
                                 This tool implements advanced cryptanalysis techniques based on recent affine transformation research. 
                                 It allows for the construction of cryptographically strong S-Boxes essential for securing modern digital infrastructure.
                             </p>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-                            <div>
-                                <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Tech Stack</h3>
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    <span class="tech-badge">Python 3.9</span>
-                                    <span class="tech-badge">Flask</span>
-                                    <span class="tech-badge">NumPy</span>
-                                    <span class="tech-badge">Anime.js</span>
-                                    <span class="tech-badge">CSS3 Variables</span>
+                        <!-- Team Section -->
+                        <div class="team-section" style="margin-bottom: 4rem;">
+                            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 2rem; color: var(--primary-color);"><i class="fas fa-users"></i> Meet Our Team</h3>
+                            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem;">
+                                <!-- Member 1 -->
+                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                        <img src="/static/team/member1.png" alt="Member 1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 1</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                </div>
+
+                                <!-- Member 2 -->
+                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                        <img src="/static/team/member2.png" alt="Member 2" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 2</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                </div>
+
+                                <!-- Member 3 -->
+                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                        <img src="/static/team/member3.png" alt="Member 3" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 3</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                </div>
+
+                                <!-- Member 4 -->
+                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                        <img src="/static/team/member4.png" alt="Member 4" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 4</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
                                 </div>
                             </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem;">
+                            <!-- Tech Stack -->
                             <div>
-                                <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary-color);">Key Features</h3>
+                                <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--primary-color); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;"><i class="fas fa-layer-group"></i> Tech Stack</h3>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.4); border-radius: 20px;">Python 3.9</span>
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.4); border-radius: 20px;">Flask</span>
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(37, 99, 235, 0.2); border: 1px solid rgba(37, 99, 235, 0.4); border-radius: 20px;">NumPy</span>
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 20px;">Anime.js</span>
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 20px;">Chart.js</span>
+                                    <span class="tech-badge" style="padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 20px;">CSS3 Variables</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Key Features -->
+                            <div>
+                                <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem; color: var(--primary-color); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;"><i class="fas fa-star"></i> Key Features</h3>
                                 <ul style="list-style: none; padding: 0; color: var(--text-color);">
-                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Affine Matrix Transformation</li>
-                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Real-time SAC & Nonlinearity Data</li>
-                                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check" style="color: var(--secondary-color); margin-right: 0.5rem;"></i> Interactive Encryption Trace</li>
+                                    <li style="margin-bottom: 0.75rem; display: flex; align-items: flex-start;">
+                                        <i class="fas fa-check-circle" style="color: var(--secondary-color); margin-right: 0.75rem; margin-top: 0.2rem;"></i>
+                                        <span><strong>Affine Matrix Transformation:</strong> Construct custom S-Boxes mathematically.</span>
+                                    </li>
+                                    <li style="margin-bottom: 0.75rem; display: flex; align-items: flex-start;">
+                                        <i class="fas fa-check-circle" style="color: var(--secondary-color); margin-right: 0.75rem; margin-top: 0.2rem;"></i>
+                                        <span><strong>Cryptographic Analysis:</strong> Real-time calculation of SAC, Nonlinearity, and Balanced properties.</span>
+                                    </li>
+                                    <li style="margin-bottom: 0.75rem; display: flex; align-items: flex-start;">
+                                        <i class="fas fa-check-circle" style="color: var(--secondary-color); margin-right: 0.75rem; margin-top: 0.2rem;"></i>
+                                        <span><strong>Visual Trace:</strong> Step-by-step interactive construction and encryption demo.</span>
+                                    </li>
+                                    <li style="margin-bottom: 0.75rem; display: flex; align-items: flex-start;">
+                                        <i class="fas fa-check-circle" style="color: var(--secondary-color); margin-right: 0.75rem; margin-top: 0.2rem;"></i>
+                                        <span><strong>Image Encryption:</strong> Secure image processing with ECB/CBC modes and histogram analysis.</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -831,13 +1004,13 @@
         </main>
 
         <footer style="margin-top: 4rem; text-align: center; padding: 2rem; color: var(--text-muted);">
-            <p style="margin-bottom: 1rem;">Designed & Engineered by <strong style="color: var(--text-color);">Arzak</strong></p>
+            <p style="margin-bottom: 1rem;">Designed & Engineered by <strong style="color: var(--text-color);">Arzaki</strong></p>
             <div style="display: flex; justify-content: center; gap: 1.5rem; font-size: 1.5rem;">
-                <a href="#" class="social-link" aria-label="Github Profile"><i class="fab fa-github"></i></a>
-                <a href="#" class="social-link" aria-label="LinkedIn Profile"><i class="fab fa-linkedin"></i></a>
-                <a href="#" class="social-link" aria-label="Email Contact"><i class="fas fa-envelope"></i></a>
+                <a href="#" class="social-link" aria-label="Github Profile" style="color: var(--text-color);"><i class="fab fa-github"></i></a>
+                <a href="#" class="social-link" aria-label="LinkedIn Profile" style="color: var(--text-color);"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="social-link" aria-label="Email Contact" style="color: var(--text-color);"><i class="fas fa-envelope"></i></a>
             </div>
-            <p style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.6;">© 2024 S-Box Analyzer Project. All rights reserved.</p>
+            <p style="margin-top: 2rem; font-size: 0.8rem; opacity: 0.6;">© 2025 S-Box Analyzer Project. All rights reserved.</p>
         </footer>
     </div>
 
