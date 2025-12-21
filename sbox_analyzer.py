@@ -738,7 +738,7 @@ def get_lat_table(sbox):
     return lat
 
 
-def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text', max_dim=None):
+def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text'):
     """
     Encrypts image bytes using either AES-ECB mode or Pure S-Box Substitution.
     Returns: 
@@ -757,10 +757,11 @@ def encrypt_image_data(image_bytes, sbox, key, mode='ecb', key_format='text', ma
         img = Image.open(io.BytesIO(image_bytes))
         img = img.convert('RGB') # Ensure RGB
         
-        # Optimize: Resize image if max_dim is specified
-        if max_dim:
-            if img.width > max_dim or img.height > max_dim:
-                img.thumbnail((max_dim, max_dim))
+        # Optimize: Resize image if too large (Pure Python AES is slow)
+        # Reduced to 128px for faster deployment processing
+        max_dim = 128
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim))
             
         width, height = img.size
         
@@ -985,22 +986,20 @@ def calculate_entropy(image_bytes):
     try:
         from PIL import Image
         import io
-        import math
         import numpy as np
 
         img = Image.open(io.BytesIO(image_bytes))
-        # Usually for image encryption papers, calculat on grayscale.
+        # Usually for image encryption papers, calculate on grayscale.
         gray_img = img.convert('L')
-        hist = np.histogram(np.array(gray_img), bins=256, range=(0,256))[0]
+        img_array = np.array(gray_img)
         
-        total_pixels = sum(hist)
-        entropy = 0
-        for count in hist:
-            if count > 0:
-                p = count / total_pixels
-                entropy -= p * math.log2(p)
+        # Optimized entropy calculation
+        hist = np.histogram(img_array.flatten(), bins=256, range=(0, 256))[0]
+        prob = hist / hist.sum()
+        prob = prob[prob > 0]  # Remove zeros to avoid log(0)
+        entropy = -np.sum(prob * np.log2(prob))
                 
-        return entropy
+        return float(entropy)
 
     except Exception as e:
         print(f"Error calculating entropy: {e}")
@@ -1021,13 +1020,12 @@ def calculate_npcr(image1_bytes, image2_bytes):
         if img1.size != img2.size:
             return 0
             
-        arr1 = np.array(img1)
-        arr2 = np.array(img2)
+        arr1 = np.array(img1, dtype=np.int32)
+        arr2 = np.array(img2, dtype=np.int32)
         
-        height, width, _ = arr1.shape
-        # Count diffs
-        diff = np.sum(arr1 != arr2)
-        npcr = (diff / (height * width * 3)) * 100
+        # Optimized calculation
+        diff = arr1 != arr2
+        npcr = np.sum(diff) / diff.size * 100
         
         return float(npcr)
         
@@ -1052,14 +1050,11 @@ def calculate_uaci(image1_bytes, image2_bytes):
         if img1.size != img2.size:
             return 0
             
-        arr1 = np.array(img1, dtype=np.int16)
-        arr2 = np.array(img2, dtype=np.int16)
+        arr1 = np.array(img1, dtype=np.int32)
+        arr2 = np.array(img2, dtype=np.int32)
         
-        height, width, channels = arr1.shape
-        total_pixels = height * width * channels
-        
-        diff = np.abs(arr1 - arr2)
-        uaci = (np.sum(diff) / (255 * total_pixels)) * 100
+        # Optimized calculation
+        uaci = np.sum(np.abs(arr1 - arr2)) / (255 * arr1.size) * 100
         
         return float(uaci)
 
@@ -1067,48 +1062,3 @@ def calculate_uaci(image1_bytes, image2_bytes):
         print(f"Error calculating UACI: {e}")
         return 0
 
-def calculate_sensitivity_metrics(image1_bytes, image2_bytes):
-    """
-    Calculates both NPCR and UACI efficiently in one pass.
-    Returns: (npcr, uaci)
-    """
-    try:
-        from PIL import Image
-        import io
-        import numpy as np
-
-        img1 = Image.open(io.BytesIO(image1_bytes)).convert('RGB')
-        img2 = Image.open(io.BytesIO(image2_bytes)).convert('RGB')
-        
-        if img1.size != img2.size:
-            return 0, 0
-            
-        # Use int16 to prevent overflow during subtraction, but minimize memory compared to float32
-        arr1 = np.array(img1, dtype=np.int16)
-        arr2 = np.array(img2, dtype=np.int16)
-        
-        height, width, channels = arr1.shape
-        total_pixels = height * width * channels
-        
-        # Calculate absolute difference once
-        diff = np.abs(arr1 - arr2)
-        
-        # UACI: Mean unified absolute change
-        uaci = (np.sum(diff) / (255 * total_pixels)) * 100
-        
-        # NPCR: Count of changed pixels (where diff > 0)
-        # We check per pixel-channel. Standard NPCR usually checks if pixel location (any channel) is different?
-        # Standard NPCR def: D(i,j) = 0 if C1(i,j) == C2(i,j), else 1.
-        # If we adhere strictly to pixel-wise (not channel-wise), we should check if ANY channel diff > 0.
-        # But commonly in RGB implementations it's done per-value or per-pixel.
-        # Looking at previous calculate_npcr implementation:
-        # diff = np.sum(arr1 != arr2) <- This was element-wise (channel-wise) count.
-        # So we stick to channel-wise count for consistency.
-        changed_pixels_count = np.count_nonzero(diff)
-        npcr = (changed_pixels_count / total_pixels) * 100
-        
-        return float(npcr), float(uaci)
-
-    except Exception as e:
-        print(f"Error calculating sensitivity metrics: {e}")
-        return 0, 0
