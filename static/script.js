@@ -718,6 +718,36 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let currentMatrix = PRESET_MATRICES['K44'];
+    let currentPolynomial = '0x11B'; // Default to Standard AES
+
+    const methodSelect = document.getElementById('research-method-select');
+    if (methodSelect) {
+        methodSelect.addEventListener('change', (e) => {
+            const method = e.target.value;
+            if (method === 'paper2023') {
+                currentPolynomial = '0x1F3';
+                // Switch Dropdown to NEW_PAPER_MATRICES
+                if (typeof NEW_PAPER_MATRICES !== 'undefined') {
+                    populateMatrixDropdown(NEW_PAPER_MATRICES);
+                    // Select first one (A0) by default
+                    if (NEW_PAPER_MATRICES.length > 0) {
+                        currentMatrix = NEW_PAPER_MATRICES[0].matrix;
+                        loadMatrixEditor(currentMatrix);
+                        if (selectedText) selectedText.textContent = `${NEW_PAPER_MATRICES[0].name} (Val: ${NEW_PAPER_MATRICES[0].val})`;
+                    }
+                }
+                // Disable/Fade standard buttons
+                presetButtons.forEach(btn => btn.classList.add('disabled-btn'));
+            } else {
+                currentPolynomial = '0x11B';
+                // Switch Dropdown to AFFINE_MATRICES
+                if (typeof AFFINE_MATRICES !== 'undefined') {
+                    populateMatrixDropdown(AFFINE_MATRICES);
+                }
+                presetButtons.forEach(btn => btn.classList.remove('disabled-btn'));
+            }
+        });
+    }
 
     const matrixEditor = document.getElementById('matrix-editor');
     const matrixGrid = document.getElementById('matrix-grid');
@@ -761,20 +791,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropdownSearch = document.getElementById('matrix-search');
     const selectedText = document.getElementById('matrix-selected-text');
 
-    if (dropdown && dropdownTrigger && typeof AFFINE_MATRICES !== 'undefined') {
-        console.log("✅ Dropdown elements found, initializing...");
-
-        // Clear any existing items first (prevent duplication)
+    function populateMatrixDropdown(matrices) {
+        if (!dropdownItems) return;
         dropdownItems.innerHTML = '';
 
-        // Populate items
-        AFFINE_MATRICES.forEach(item => {
+        matrices.forEach(item => {
             const div = document.createElement('div');
             div.className = 'dropdown-item';
 
             let badges = '';
             if (item.name === 'K44') badges = '<span class="item-badge best">BEST</span>';
             else if (['K4', 'K81', 'K111', 'K128'].includes(item.name)) badges = '<span class="item-badge paper">PAPER</span>';
+            else if (['A0', 'A1', 'A2'].includes(item.name)) badges = '<span class="item-badge new-paper">NEW (2023)</span>';
             else if (item.val === 143) badges = '<span class="item-badge aes">AES</span>';
 
             div.innerHTML = `<span>${item.name} ${badges}</span><span class="item-val">Val: ${item.val}</span>`;
@@ -792,12 +820,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dropdownItems.appendChild(div);
         });
+    }
+
+    if (dropdown && dropdownTrigger && typeof AFFINE_MATRICES !== 'undefined') {
+        console.log("✅ Dropdown elements found, initializing...");
+
+        // Initial population
+        populateMatrixDropdown(AFFINE_MATRICES);
 
         // Toggle on click
         dropdownTrigger.onclick = function (e) {
             e.stopPropagation();
             dropdownMenu.classList.toggle('active');
-            console.log("Dropdown toggled, active:", dropdownMenu.classList.contains('active'));
         };
 
         // Search
@@ -818,11 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("✅ Dropdown initialized successfully");
     } else {
-        console.error("❌ Dropdown initialization failed:", {
-            dropdown: !!dropdown,
-            trigger: !!dropdownTrigger,
-            matrices: typeof AFFINE_MATRICES !== 'undefined'
-        });
+        console.error("❌ Dropdown initialization failed");
     }
 
     // End of Dropdown Logic
@@ -868,6 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     affine_matrix: currentMatrix,
+                    polynomial: currentPolynomial,
                     sample_inputs: [0, 15, 255]
                 })
             });
@@ -1459,71 +1490,144 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Upload S-Box from Excel
-    const excelUpload = document.getElementById('excel-upload');
-    const uploadStatus = document.getElementById('upload-status');
-    const customSboxTextarea = document.getElementById('custom-sbox');
+    // [REFACTORED] Reusable S-Box Upload Function
+    async function handleSBoxUpload(file) {
+        if (!file) return;
 
-    if (excelUpload) {
-        excelUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Show loading status
+        // Find status element (try global or create/find local one if needed)
+        // For simplicity, we use the global uploadStatus or alert
+        const uploadStatus = document.getElementById('upload-status');
+        if (uploadStatus) {
             uploadStatus.classList.remove('hidden');
             uploadStatus.style.background = 'rgba(59, 130, 246, 0.1)';
             uploadStatus.style.border = '1px solid rgba(59, 130, 246, 0.3)';
             uploadStatus.style.color = 'var(--primary-color)';
             uploadStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading and parsing Excel file...';
+        }
 
-            const formData = new FormData();
-            formData.append('file', file);
+        const formData = new FormData();
+        formData.append('file', file);
 
-            try {
-                const response = await fetch('/upload_sbox_excel', {
-                    method: 'POST',
-                    body: formData
-                });
+        try {
+            const response = await fetch('/upload_sbox_excel', {
+                method: 'POST',
+                body: formData
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (!response.ok) {
-                    // Show error
+            if (!response.ok) {
+                if (uploadStatus) {
                     uploadStatus.style.background = 'rgba(239, 68, 68, 0.1)';
                     uploadStatus.style.border = '1px solid rgba(239, 68, 68, 0.3)';
                     uploadStatus.style.color = '#ef4444';
                     uploadStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error || 'Upload failed'}`;
-                    return;
+                } else {
+                    alert('Upload failed: ' + (data.error || 'Unknown error'));
                 }
+                return;
+            }
 
-                // Success - populate custom S-Box textarea
-                const sboxString = data.sbox.join(' ');
-                customSboxTextarea.value = sboxString;
+            // Success - populate custom S-Box textarea (Shared Source of Truth)
+            const sboxString = data.sbox.join(' ');
+            if (customSboxTextarea) customSboxTextarea.value = sboxString;
 
-                // Show success message
+            // Sync ALL S-Box Selectors to 'custom'
+            const selectors = ['sbox-select', 'text-sbox-select', 'image-sbox-select'];
+            selectors.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = 'custom';
+            });
+
+            // Show success message
+            if (uploadStatus) {
                 uploadStatus.style.background = 'rgba(16, 185, 129, 0.1)';
                 uploadStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
                 uploadStatus.style.color = '#10b981';
                 uploadStatus.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message} (256 values loaded)`;
 
-                // Switch to custom mode to use the uploaded S-Box
-                sboxSelect.value = 'custom';
+                // Hide after 3s
+                setTimeout(() => uploadStatus.classList.add('hidden'), 3000);
+            } else {
+                alert('S-Box Uploaded Successfully!');
+            }
+
+            // If we are in Tab 2, show custom input container
+            if (customInputContainer && uploadInputContainer) {
                 customInputContainer.classList.remove('hidden');
                 uploadInputContainer.classList.add('hidden');
-
-                // Auto-hide success message after 3 seconds
-                setTimeout(() => {
-                    uploadStatus.classList.add('hidden');
-                }, 3000);
-
-            } catch (error) {
-                console.error('Error:', error);
-                uploadStatus.style.background = 'rgba(239, 68, 68, 0.1)';
-                uploadStatus.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                uploadStatus.style.color = '#ef4444';
-                uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed to upload file. Please try again.';
             }
-        });
+
+        } catch (error) {
+            console.error('Error:', error);
+            if (uploadStatus) uploadStatus.innerHTML = 'Error uploading file';
+        }
     }
+
+    // Bind Main Upload (Tab 2)
+    const excelUpload = document.getElementById('excel-upload');
+    if (excelUpload) {
+        excelUpload.addEventListener('change', (e) => handleSBoxUpload(e.target.files[0]));
+    }
+
+    // Bind Text Crypto Upload (Tab 3)
+    const textSboxUploadBtn = document.getElementById('text-sbox-upload-btn');
+    const textSboxUploadFile = document.getElementById('text-sbox-upload-file');
+    if (textSboxUploadBtn && textSboxUploadFile) {
+        textSboxUploadBtn.addEventListener('click', () => textSboxUploadFile.click());
+        textSboxUploadFile.addEventListener('change', (e) => handleSBoxUpload(e.target.files[0]));
+    }
+
+    // Bind Image Crypto Upload (Tab 4)
+    const imageSboxUploadBtn = document.getElementById('image-sbox-upload-btn');
+    const imageSboxUploadFile = document.getElementById('image-sbox-upload-file');
+    if (imageSboxUploadBtn && imageSboxUploadFile) {
+        imageSboxUploadBtn.addEventListener('click', () => imageSboxUploadFile.click());
+        imageSboxUploadFile.addEventListener('change', (e) => handleSBoxUpload(e.target.files[0]));
+    }
+
+    // Synchronization Logic (Optional: Keep selectors in sync or let them be independent?)
+    // User expectation: "I verified in Tab 2, now I want to use it in Tab 3."
+    // Strategy: When one changes, update others? Or just let them be independent?
+    // Let's keep them independent BUT default them to match global state on load/change?
+    // Actually, simplest is: One Global Source of Truth is better for UX here.
+    // If I select "K4" in Text, it should probably select "K4" everywhere to avoid confusion.
+    function syncSBoxSelectors(sourceId) {
+        const val = document.getElementById(sourceId).value;
+        ['sbox-select', 'text-sbox-select', 'image-sbox-select'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && id !== sourceId) el.value = val;
+        });
+
+        // Handle UI visibility in Tab 2
+        if (sourceId !== 'sbox-select') {
+            // If we changed it from outside Tab 2, update Tab 2 UI visibility (Custom/Upload fields)
+            if (val === 'custom') {
+                if (customInputContainer) customInputContainer.classList.remove('hidden');
+                if (uploadInputContainer) uploadInputContainer.classList.add('hidden');
+            } else if (val === 'upload') {
+                if (customInputContainer) customInputContainer.classList.add('hidden');
+                if (uploadInputContainer) uploadInputContainer.classList.remove('hidden');
+            } else {
+                if (customInputContainer) customInputContainer.classList.add('hidden');
+                if (uploadInputContainer) uploadInputContainer.classList.add('hidden');
+            }
+        }
+    }
+
+    ['sbox-select', 'text-sbox-select', 'image-sbox-select'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', (e) => {
+                syncSBoxSelectors(e.target.id);
+                // Trigger global change handler for sbox-select to update UI in Tab 2
+                if (e.target.id === 'sbox-select') {
+                    // Original handler logic is already attached to 'change'
+                }
+            });
+        }
+    });
+
 
 
     // =============== ADVANCED VISUALS (HEATMAPS) ===============
@@ -1818,7 +1922,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const type = sboxSelect.value;
             const customSbox = document.getElementById('custom-sbox').value;
-            const key = encryptionKeyInput.value;
+            // Use dedicated key input for image
+            const keyInput = document.getElementById('image-encryption-key');
+            const key = keyInput ? keyInput.value.trim() : '';
 
             // Get selected mode
             const mode = document.querySelector('input[name="enc-mode"]:checked').value;
@@ -1851,21 +1957,169 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Display Results
                 imageResults.classList.remove('hidden');
+
+                // Show Metrics Section immediately
+                const metricsSection = document.getElementById('image-analysis-metrics');
+                if (metricsSection) metricsSection.classList.remove('hidden');
+
                 document.getElementById('img-preview-orig').src = data.original_image;
-                document.getElementById('img-preview-enc').src = data.encrypted_image;
+                // Ensure data URI prefix
+                let encSrc = data.encrypted_image;
+                if (!encSrc.startsWith('data:image')) {
+                    encSrc = `data:image/png;base64,${encSrc}`;
+                }
+                document.getElementById('img-preview-enc').src = encSrc;
 
                 // Render Histograms
                 renderHistogram('hist-orig', data.hist_original, 'Original Histogram');
                 renderHistogram('hist-enc', data.hist_encrypted, 'Encrypted Histogram');
+
+                // Setup Download Button
+                const downloadBtn = document.getElementById('download-encrypted-image-btn');
+                if (downloadBtn) {
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.onclick = function (e) {
+                        e.preventDefault();
+                        const link = document.createElement('a');
+                        link.href = encSrc;
+                        link.download = 'encrypted_image.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    };
+                }
+
+                // Auto-trigger Deep Analysis
+                setTimeout(() => {
+                    const deepBtn = document.getElementById('run-deep-analysis-btn');
+                    if (deepBtn && !deepBtn.disabled) {
+                        deepBtn.click();
+                    }
+                }, 500);
 
                 encryptImageBtn.innerHTML = originalText;
                 encryptImageBtn.disabled = false;
 
             } catch (error) {
                 console.error(error);
-                alert('Error during image encryption');
+                alert('Error: ' + error.message);
                 encryptImageBtn.innerHTML = '<i class="fas fa-lock"></i> Encrypt Image (AES-ECB)';
                 encryptImageBtn.disabled = false;
+            }
+        });
+    }
+
+    // New Image Analysis Handlers
+    const deepAnalysisBtn = document.getElementById('run-deep-analysis-btn');
+    if (deepAnalysisBtn) {
+        deepAnalysisBtn.addEventListener('click', async () => {
+            if (!selectedImageFile) {
+                alert('Please upload and encrypt an image first.');
+                return;
+            }
+
+            const type = sboxSelect.value;
+            const customSbox = document.getElementById('custom-sbox').value;
+
+            const keyInput = document.getElementById('image-encryption-key');
+            const key = keyInput ? keyInput.value.trim() : '';
+
+            const mode = document.querySelector('input[name="enc-mode"]:checked').value;
+
+            const formData = new FormData();
+            formData.append('image_file', selectedImageFile);
+            formData.append('type', type);
+            formData.append('custom_sbox', customSbox);
+            formData.append('key', key);
+            formData.append('encryption_mode', mode);
+
+            try {
+                deepAnalysisBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+                deepAnalysisBtn.disabled = true;
+
+                const response = await fetch('/analyze_image_sensitivity', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                document.getElementById('img-entropy-value').textContent = data.entropy.toFixed(4);
+                document.getElementById('img-npcr-value').textContent = data.npcr.toFixed(4) + '%';
+
+            } catch (error) {
+                console.error(error);
+                alert('Analysis Error: ' + error.message);
+            } finally {
+                deepAnalysisBtn.innerHTML = '<i class="fas fa-play-circle"></i> Run Deep Analysis (Entropy & NPCR)';
+                deepAnalysisBtn.disabled = false;
+            }
+        });
+    }
+
+    // New Image Decryption Handlers
+    const selectEncImgBtn = document.getElementById('select-encrypted-image-btn');
+    const encImgUpload = document.getElementById('encrypted-image-upload');
+    const decryptImgBtn = document.getElementById('decrypt-image-btn');
+    const decKeyInput = document.getElementById('decryption-key-input');
+
+    let selectedEncryptedFile = null;
+
+    if (selectEncImgBtn && encImgUpload) {
+        selectEncImgBtn.addEventListener('click', () => encImgUpload.click());
+
+        encImgUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedEncryptedFile = file;
+                document.getElementById('encrypted-image-file-name').textContent = file.name;
+                decryptImgBtn.disabled = false;
+            }
+        });
+
+        decryptImgBtn.addEventListener('click', async () => {
+            if (!selectedEncryptedFile) return;
+
+            const type = sboxSelect.value;
+            const customSbox = document.getElementById('custom-sbox').value;
+            const key = decKeyInput.value;
+            const mode = document.querySelector('input[name="enc-mode"]:checked').value;
+
+            const formData = new FormData();
+            formData.append('encrypted_image', selectedEncryptedFile);
+            formData.append('type', type);
+            formData.append('custom_sbox', customSbox);
+            formData.append('key', key);
+            formData.append('encryption_mode', mode);
+
+            try {
+                decryptImgBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Decrypting...';
+                decryptImgBtn.disabled = true;
+
+                const response = await fetch('/decrypt_image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Decryption failed');
+                }
+
+                document.getElementById('decryption-result').classList.remove('hidden');
+                document.getElementById('img-preview-decrypted').src = data.decrypted_image;
+
+            } catch (error) {
+                console.error(error);
+                alert('Decryption Error: ' + error.message);
+            } finally {
+                decryptImgBtn.innerHTML = '<i class="fas fa-unlock-alt"></i> Decrypt Image';
+                decryptImgBtn.disabled = false;
             }
         });
     }

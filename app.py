@@ -4,7 +4,8 @@ from sbox_analyzer import (get_sbox, check_bijective, check_balance, calculate_n
                            calculate_dap, calculate_differential_uniformity, calculate_algebraic_degree,
                            calculate_transparency_order, calculate_correlation_immunity,
                            get_ddt_table, get_lat_table, 
-                           encrypt_image_data, construct_sbox_from_matrix, 
+                           encrypt_image_data, decrypt_image_data, construct_sbox_from_matrix, 
+                           calculate_entropy, calculate_npcr,
                            get_construction_steps, AES_SBOX, SBOX_44)
 from aes_cipher import AESCipher
 import base64
@@ -291,23 +292,31 @@ def encrypt():
         if error:
             return jsonify({'error': error}), 400
             
-        # Get Key
+        key_format = 'text' # Force text only
+        
+        # Get Key Logic (Shared)
         if not key_input: key_input = "This is a key123"
+        
         key_bytes = key_input.encode('utf-8')
-        if len(key_bytes) < 16:
-            key_bytes += b'\0' * (16 - len(key_bytes))
-        else:
-            key_bytes = key_bytes[:16]
+
+        # Ensure key length (16, 24, 32)
+        if len(key_bytes) not in [16, 24, 32]:
+            if len(key_bytes) < 16: key_bytes += b'\0' * (16 - len(key_bytes))
+            elif len(key_bytes) < 24: key_bytes = key_bytes[:16]
+            elif len(key_bytes) < 32: key_bytes = key_bytes[:24]
+            else: key_bytes = key_bytes[:32]
 
         cipher = AESCipher(key_bytes, sbox)
 
         # Handle Image Encryption
         if image_file:
             image_bytes = image_file.read()
-            encrypted_b64, hist_orig, hist_enc = encrypt_image_data(image_bytes, sbox, key_bytes, encryption_mode)
+            # Pass Raw Key + Format to Analyzer
+            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format)
             
             if not encrypted_b64:
-                 return jsonify({'error': 'Failed to process image.'}), 500
+                 # If analyzer failed (e.g. hex error inside), it returns None
+                 return jsonify({'error': 'Failed to encrypt. Check Key Format.'}), 400
                  
             # Convert original for display too
             image_file.seek(0)
@@ -440,6 +449,125 @@ def encrypt_detailed():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/analyze_image_sensitivity', methods=['POST'])
+def analyze_image_sensitivity():
+    """
+    Perform deep image analysis (Entropy & NPCR).
+    Requires: image, key, sbox.
+    """
+    try:
+        sbox_type = request.form.get('type')
+        custom_sbox_str = request.form.get('custom_sbox')
+        image_file = request.files.get('image_file')
+        key_input = request.form.get('key')
+        key_format = request.form.get('key_format', 'text')
+        encryption_mode = request.form.get('encryption_mode', 'ecb')
+
+        if not image_file:
+             return jsonify({'error': 'Image file required.'}), 400
+             
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error: return jsonify({'error': error}), 400
+        
+        if not key_input: key_input = "This is a key123"
+        
+        # We pass key_input and key_format directly to encrypt_image_data
+        # Note: We need key_bytes only if we manually perform something here not using sbox_analyzer functions
+        # But wait, analyze_image_sensitivity does logic locally using sbox_analyzer functions.
+        # But 'encrypt_image_data' now handles the key parsing.
+        # So we don't need to parse it here? But wait...
+        # 'calculate_entropy' takes ciphertext. 'calculate_npcr' takes 2 ciphertexts.
+        # All good.
+        
+        # However, we need 'key_bytes' passed to encrypt_image_data?
+        # NO, we updated encrypt_image_data to take (bytes, sbox, key_INPUT, mode, format).
+        # So we pass 'key_input' string.
+
+        # Read Original Image
+        image_bytes = image_file.read()
+        
+        # 0. Pre-process: Resize to ensure 1-bit change persists.
+        # encrypt_image_data resizes to max 256x256. We must do this BEFORE flipping a bit.
+        from PIL import Image
+        import numpy as np
+        
+        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        
+        # Resize if too large, similar to encrypt_image_data logic
+        max_dim = 256
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim))
+            
+        # Get processed base bytes
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        processed_image_bytes = buf.getvalue()
+        
+        # 1. Encrypt Original (Processed) -> C1
+        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format)
+        
+        # 2. Calculate Entropy of C1
+        entropy = calculate_entropy(c1_bytes_raw)
+        
+        # 3. Modify Image (Flip 1 bit of processed image) -> P2
+        arr = np.array(img)
+        # Flip LSB of first pixel
+        arr_mod = arr.copy()
+        arr_mod[0,0,0] ^= 1 
+        
+        img_mod = Image.fromarray(arr_mod)
+        buf_mod = io.BytesIO()
+        img_mod.save(buf_mod, format='PNG')
+        image_mod_bytes = buf_mod.getvalue()
+        
+        # 4. Encrypt Modified -> C2
+        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format)
+        
+        # 5. Calculate NPCR (C1, C2)
+        npcr = calculate_npcr(c1_bytes_raw, c2_bytes_raw)
+        
+        return jsonify({
+            'entropy': entropy,
+            'npcr': npcr
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/decrypt_image', methods=['POST'])
+def decrypt_image_endpoint():
+    try:
+        sbox_type = request.form.get('type')
+        custom_sbox_str = request.form.get('custom_sbox')
+        encrypted_image_file = request.files.get('encrypted_image')
+        key_input = request.form.get('key')
+        key_format = request.form.get('key_format', 'text')
+        encryption_mode = request.form.get('encryption_mode', 'ecb')
+        
+        if not encrypted_image_file:
+             return jsonify({'error': 'Encrypted image required.'}), 400
+             
+        sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
+        if error: return jsonify({'error': error}), 400
+        
+        if not key_input: key_input = "This is a key123"
+
+        encrypted_bytes = encrypted_image_file.read()
+        
+        decrypted_b64 = decrypt_image_data(encrypted_bytes, sbox, key_input, encryption_mode, key_format)
+        
+        if not decrypted_b64:
+             return jsonify({'error': 'Decryption failed.'}), 500
+             
+        return jsonify({
+            'decrypted_image': f'data:image/png;base64,{decrypted_b64}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/construct', methods=['POST'])
 def construct():
     """
@@ -453,7 +581,19 @@ def construct():
         data = request.json
         affine_matrix = data.get('affine_matrix')
         c_constant = data.get('c_constant')
+
         sample_inputs = data.get('sample_inputs', [0, 15, 255])
+        polynomial = data.get('polynomial', 0x11B) # Default to Standard AES
+        
+        # Parse polynomial if string
+        if isinstance(polynomial, str):
+            try:
+                if polynomial.lower().startswith('0x'):
+                    polynomial = int(polynomial, 16)
+                else:
+                    polynomial = int(polynomial)
+            except:
+                polynomial = 0x11B # Fallback
         
         if not affine_matrix:
             return jsonify({'error': 'Affine matrix is required.'}), 400
@@ -475,7 +615,7 @@ def construct():
                 return jsonify({'error': 'Constant elements must be 0 or 1.'}), 400
         
         # Construct S-box
-        sbox = construct_sbox_from_matrix(affine_matrix, c_constant)
+        sbox = construct_sbox_from_matrix(affine_matrix, c_constant, mod_poly=polynomial)
         
         # Test the S-box
         is_bijective = check_bijective(sbox)
