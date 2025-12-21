@@ -1,0 +1,427 @@
+================================================================================
+                    LAPORAN PROYEK KRIPTOGRAFI
+                      IMPLEMENTASI AES CIPHER
+                 (Replikasi Penelitian dari Paper)
+================================================================================
+
+1. PENDAHULUAN
+================================================================================
+
+   1.1 LATAR BELAKANG
+   -----------------
+       Jelaskan:
+       • Pentingnya keamanan data dan enkripsi dalam era digital modern
+       • Peran Advanced Encryption Standard (AES) sebagai standar enkripsi 
+         internasional yang paling banyak digunakan
+       • Kontribusi penelitian original dari paper [s11071-024-10414-3]
+       • Alasan memilih untuk mereplikasi penelitian tersebut
+       • Relevansi implementasi AES dalam konteks akademik dan praktis
+       • Tujuan pembelajaran melalui replikasi penelitian
+
+   1.2 RUMUSAN MASALAH
+   -------------------
+       Identifikasi masalah-masalah:
+       • Bagaimana mengimplementasikan algoritma AES sesuai dengan standar?
+       • Bagaimana menganalisis dan memvalidasi keamanan implementasi AES?
+       • Bagaimana membandingkan hasil implementasi dengan temuan penelitian original?
+       • Bagaimana membuat aplikasi yang dapat digunakan untuk menganalisis 
+         karakteristik AES?
+
+   1.3 TUJUAN PROYEK
+   -----------------
+       • Mereplikasi implementasi AES dari penelitian yang ditunjukkan
+       • Mengimplementasikan algoritma AES dengan benar dan efisien
+       • Membuat aplikasi web untuk enkripsi/dekripsi data
+       • Menganalisis operasi internal dan S-Box AES
+       • Melakukan validasi hasil dengan test vectors standar NIST
+       • Membandingkan performa dan karakteristik dengan implementasi referensi
+
+
+2. METODE
+================================================================================
+
+   2.1 STUDI LITERATUR
+   -------------------
+       • Mempelajari paper penelitian original [s11071-024-10414-3]
+       • Memahami teori dan algoritma AES dari standar FIPS 197
+       • Menganalisis kerangka kerja yang digunakan dalam penelitian original
+       • Mengidentifikasi metode dan pendekatan yang akan direplikasi
+
+   2.2 DESAIN SISTEM
+   -----------------
+       • Arsitektur aplikasi web (Backend: Flask, Frontend: HTML/CSS/JavaScript)
+       • Desain modul kriptografi (aes_cipher.py)
+       • Desain komponen analisis (sbox_analyzer.py)
+       • Desain testing dan audit (audit_tests.py)
+
+   2.3 IMPLEMENTASI ALGORITMA AES
+   --------------------------------
+       • Implementasi operasi SubBytes dengan S-Box
+       • Implementasi operasi ShiftRows
+       • Implementasi operasi MixColumns di GF(2^8)
+       • Implementasi Key Schedule untuk ekspansi kunci
+       • Implementasi proses enkripsi dan dekripsi
+       • Optimasi dan penyesuaian dengan penelitian original
+
+   2.4 PENGUJIAN DAN VALIDASI
+   ----------------------------
+       • Validasi dengan NIST test vectors
+       • Unit testing setiap operasi AES
+       • Testing enkripsi/dekripsi dengan berbagai ukuran kunci
+       • Analisis keamanan dan S-Box characteristics
+       • Performance testing dan benchmarking
+       • Perbandingan hasil dengan temuan penelitian original
+
+   2.5 TOOLS DAN TEKNOLOGI
+   -------------------------
+       • Python 3.x untuk implementasi kriptografi
+       • Flask untuk backend web application
+       • HTML5/CSS3/JavaScript untuk frontend
+       • Test framework untuk unit testing
+       • Heroku untuk deployment
+
+
+3. HASIL DAN PEMBAHASAN
+================================================================================
+
+   3.1 IMPLEMENTASI SISTEM
+   -----------------------
+       
+       A. DESKRIPSI STRUKTUR PROYEK DAN ARSITEKTUR SISTEM
+       
+       Proyek ini mengembangkan aplikasi web berbasis Flask untuk implementasi, 
+       analisis, dan visualisasi algoritma Advanced Encryption Standard (AES). 
+       Aplikasi dibangun dengan arsitektur client-server yang memisahkan logic 
+       kriptografi di backend dengan interface interaktif di frontend.
+       
+       Struktur proyek terdiri atas beberapa komponen utama:
+       
+       1. Backend (Server-side):
+          - Menggunakan Flask sebagai framework web Python
+          - Menyediakan REST API endpoints untuk operasi enkripsi/dekripsi
+          - Menangani pemrosesan data dan analisis S-Box
+          - Memvalidasi input dan mengelola keamanan endpoint
+       
+       2. Frontend (Client-side):
+          - Menggunakan HTML5, CSS3, dan JavaScript vanilla
+          - Menyediakan interface interaktif dengan multiple tabs/pages
+          - Real-time visualization dan output rendering
+          - Responsive design untuk berbagai resolusi layar
+       
+       3. Struktur file dan folder:
+          ├── Backend Modules (aes_cipher.py, sbox_analyzer.py, app.py)
+          ├── Testing (audit_tests.py)
+          ├── Frontend (templates/index.html, static/*)
+          └── Configuration (requirements.txt, Procfile, runtime.txt)
+       
+       
+       B. MODUL-MODUL YANG TELAH DIKEMBANGKAN
+       
+       1. aes_cipher.py - Implementasi Algoritma AES
+          
+          Modul ini mengimplementasikan seluruh algoritma Advanced Encryption 
+          Standard sesuai dengan standar FIPS 197. Komponen utama meliputi:
+          
+          • Class AESCipher: Kelas utama yang menangani enkripsi dan dekripsi
+            - Inisialisasi dengan kunci (128, 192, atau 256 bit)
+            - Support untuk custom S-Box (default menggunakan AES S-Box standar)
+          
+          • Key Expansion (key_expansion):
+            - Mengimplementasikan Rcon (Round constants)
+            - RotWord dan SubWord operations
+            - Ekspansi kunci menjadi round keys (10, 12, atau 14 round)
+          
+          • Operasi Enkripsi:
+            - SubBytes: Substitusi menggunakan S-Box pada setiap byte state
+            - ShiftRows: Pergeseran baris dengan offset (0,1,2,3 untuk setiap baris)
+            - MixColumns: Perkalian matriks di Galois Field GF(2^8)
+            - AddRoundKey: XOR antara state dengan round key
+          
+          • Operasi Dekripsi:
+            - Inverse SubBytes (InvSubBytes) menggunakan Inverse S-Box
+            - Inverse ShiftRows (InvShiftRows)
+            - Inverse MixColumns (InvMixColumns)
+            - AddRoundKey (sama dengan enkripsi)
+          
+          • Operasi Pendukung:
+            - GF(2^8) multiplication untuk MixColumns
+            - State matrix management (4x4 byte matrix)
+            - Round key extraction
+       
+       
+       2. app.py - Backend Aplikasi Web dengan Flask
+          
+          Modul ini merupakan core dari web application yang menyediakan endpoints
+          API untuk berbagai fitur. Fitur-fitur utama:
+          
+          • Routes dan Endpoints:
+            - /: Main page rendering
+            - /api/encrypt-text: Endpoint untuk enkripsi plaintext
+            - /api/decrypt-text: Endpoint untuk dekripsi ciphertext
+            - /api/analyze-sbox: Analisis karakteristik S-Box
+            - /api/get-sbox-matrix: Retrieve S-Box matrix
+            - /api/compare-sboxes: Perbandingan antar S-Box
+            - /api/image-encrypt: Enkripsi image data
+            - /api/generate-report: Generate laporan hasil analisis
+          
+          • Fitur Enkripsi/Dekripsi:
+            - Support untuk plaintext dengan padding PKCS7
+            - Support multiple key sizes (128, 192, 256 bit)
+            - Output dalam format hexadecimal dan base64
+            - Error handling untuk invalid input
+          
+          • Fitur Analisis S-Box:
+            - Kalkulasi statistik keamanan (nonlinearity, differential uniformity)
+            - Linear Approximation Table (LAT) dan Difference Distribution Table (DDT)
+            - Visualisasi matriks S-Box
+            - Export hasil analisis ke Excel
+          
+          • Manajemen Kunci:
+            - Parsing dari berbagai format input (text, hex)
+            - Automatic padding/truncation ke ukuran yang tepat
+            - Default key untuk testing
+          
+          • Security Features:
+            - Input validation dan sanitization
+            - Rate limiting (optional)
+            - CORS handling untuk cross-origin requests
+       
+       
+       3. sbox_analyzer.py - Analisis Karakteristik S-Box
+          
+          Modul ini mengimplementasikan analisis mendalam terhadap substitution box
+          dan menyediakan tools untuk evaluasi keamanan. Fitur-fitur meliputi:
+          
+          • S-Box Repository:
+            - AES S-Box standar (256 values)
+            - SBOX_44 (dari penelitian yang direplikasi)
+            - Support untuk custom S-Box
+          
+          • Analisis Keamanan S-Box:
+            - check_bijective: Verifikasi sifat bijektif (permutasi)
+            - check_balance: Cek keseimbangan output bits (0/1)
+            - calculate_nonlinearity: Menghitung derajat non-linearity
+            - calculate_sac: Strict Avalanche Criterion
+            - calculate_differential_uniformity: Differential cryptanalysis resistance
+            - calculate_algebraic_degree: Derajat algebraik
+          
+          • Cryptanalysis Tables:
+            - get_lat_table: Membuat Linear Approximation Table
+            - get_ddt_table: Membuat Difference Distribution Table
+            - Analisis distribusi diferensial
+          
+          • Konstruksi S-Box:
+            - construct_sbox_from_matrix: Konstruksi dari affine transformation
+            - GF(2^8) operations (multiplication, inverse)
+            - Implementation dari AES affine transformation
+          
+          • Visualisasi Data:
+            - Matrix rendering untuk LAT dan DDT
+            - Histogram untuk distribusi
+            - Export data untuk reporting
+       
+       
+       4. audit_tests.py - Testing dan Validasi
+          
+          Modul ini menyediakan comprehensive testing untuk validasi implementasi:
+          
+          • Unit Tests untuk Operasi Dasar:
+            - test_gf_multiplication: Verifikasi GF(2^8) multiplication
+            - test_gf_inverse: Verifikasi GF(2^8) inverse operations
+            - test_aes_sbox_construction: Validasi S-Box construction
+          
+          • Functional Tests:
+            - test_key_expansion: Verifikasi key schedule
+            - test_sub_bytes: SubBytes operation validation
+            - test_shift_rows: ShiftRows operation validation
+            - test_mix_columns: MixColumns operation validation
+            - test_add_round_key: AddRoundKey operation validation
+          
+          • Integration Tests:
+            - test_encryption_decryption: End-to-end encryption/decryption
+            - test_nist_vectors: Validasi dengan NIST test vectors
+            - test_multiple_key_sizes: Testing AES-128, AES-192, AES-256
+            - test_padding_and_unpadding: Padding validation
+          
+          • Security Tests:
+            - Verifikasi keamanan S-Box terhadap known attacks
+            - Testing terhadap weak keys
+            - Performance benchmarking
+       
+       
+       C. FITUR-FITUR APLIKASI WEB YANG TERSEDIA
+       
+       1. Tab Constructor - S-Box Construction & Analysis
+          • Konstruksi S-Box dari affine transformation di GF(2^8)
+          • Visualisasi step-by-step proses konstruksi
+          • Analisis karakteristik S-Box yang dibangun
+          • Perbandingan dengan S-Box standar
+          • Export construction parameters
+       
+       2. Tab Analysis - S-Box Security Analysis
+          • Analisis keamanan S-Box (bijective, balance, nonlinearity)
+          • Kalkulasi Strict Avalanche Criterion (SAC)
+          • Linear Approximation Table (LAT) visualization
+          • Difference Distribution Table (DDT) visualization
+          • Differential cryptanalysis metrics
+          • Export hasil analisis ke format Excel
+       
+       3. Tab Text Crypto - Enkripsi/Dekripsi Teks
+          • Enkripsi plaintext dengan AES (128, 192, 256 bit)
+          • Dekripsi ciphertext kembali ke plaintext
+          • Pilihan format output (Hex, Base64, Text)
+          • Encryption trace visualization (state per round)
+          • Custom key input atau generate random key
+          • Excel report generation dengan state trace
+       
+       4. Tab Image Crypto - Enkripsi/Dekripsi Image
+          • Upload image dan enkripsi pixel data
+          • Dekripsi encrypted image kembali ke original
+          • Visual preview enkripsi result
+          • Support berbagai format image (PNG, JPG, BMP)
+          • Download encrypted image
+       
+       5. Tab About - Informasi Proyek
+          • Dokumentasi algoritma AES
+          • Penjelasan S-Box dan operasi kriptografi
+          • Referensi ke standar FIPS 197
+          • Information tentang implementasi
+       
+       
+       D. TEKNOLOGI DAN DEPENDENCIES
+       
+       Backend Technologies:
+       • Python 3.x: Bahasa pemrograman utama
+       • Flask 2.x: Web framework
+       • NumPy: Operasi matrix dan numeric computation
+       • Pandas: Data manipulation untuk report generation
+       • OpenPyXL: Excel file generation
+       • Werkzeug: Utilities untuk request/response handling
+       
+       Frontend Technologies:
+       • HTML5: Semantic markup
+       • CSS3: Styling dengan glassmorphism design
+       • Vanilla JavaScript: DOM manipulation dan API calls
+       • Font Awesome: Icon library
+       • Google Fonts: Typography
+       
+       Deployment:
+       • Heroku: Cloud platform untuk hosting
+       • Procfile: Process definition untuk Heroku
+       • Runtime.txt: Spesifikasi Python version
+       • Requirements.txt: Python dependencies listing
+
+   3.2 HASIL PENGUJIAN FUNGSIONAL
+   --------------------------------
+       • Hasil enkripsi/dekripsi dengan berbagai ukuran kunci (128, 192, 256 bit)
+       • Verifikasi plaintext asli dapat dipulihkan dengan benar
+       • Pengujian dengan NIST test vectors
+       • Tabel perbandingan hasil implementasi dengan expected output
+       • Pengujian dengan berbagai ukuran input data
+
+   3.3 ANALISIS KARAKTERISTIK AES
+   --------------------------------
+       • Hasil analisis S-Box (distribusi nilai, non-linearity)
+       • Pengamatan operasi SubBytes, ShiftRows, dan MixColumns
+       • Karakteristik avalanche effect
+       • Visualisasi dan interpretasi hasil analisis
+
+   3.4 PERBANDINGAN DENGAN PENELITIAN ORIGINAL
+   -----------------------------------------------
+       • Perbandingan hasil implementasi dengan temuan paper [s11071-024-10414-3]
+       • Kesamaan dan perbedaan pendekatan
+       • Verifikasi kesuksesan replikasi
+       • Insight tambahan dari proses implementasi
+
+   3.5 ANALISIS PERFORMA DAN KEAMANAN
+   -----------------------------------------------
+       • Waktu eksekusi enkripsi/dekripsi
+       • Memory usage dan resource consumption
+       • Pengujian keamanan terhadap potential attacks
+       • Audit code dan identifikasi potensi vulnerabilities
+       • Perbandingan dengan algoritma enkripsi lainnya (jika ada)
+
+
+4. KESIMPULAN
+================================================================================
+
+   4.1 RINGKASAN PENCAPAIAN
+   -------------------------
+       • Ringkas apa yang telah berhasil diimplementasikan
+       • Verifikasi terhadap tujuan proyek
+       • Kesuksesan replikasi penelitian original
+       • Pencapaian fungsionalitas sistem keseluruhan
+
+   4.2 TEMUAN DAN INSIGHT
+   ----------------------
+       • Insight teknis dari proses implementasi
+       • Temuan tentang keamanan dan karakteristik AES
+       • Pembelajaran tentang kriptografi dari paper original
+       • Perbandingan antara teori dan praktik implementasi
+       • Verifikasi konsistensi dengan penelitian yang direplikasi
+
+   4.3 SARAN PENGEMBANGAN LANJUTAN
+   --------------------------------
+       • Fitur-fitur yang dapat ditambahkan:
+         - Support untuk mode enkripsi lain (CBC, CTR, GCM)
+         - Hardware acceleration
+         - Implementasi dalam bahasa lain untuk perbandingan
+         - Mobile application version
+       • Optimasi lebih lanjut berdasarkan hasil penelitian
+       • Standar keamanan tambahan yang dapat diimplementasikan
+       • Peningkatan berdasarkan metode paper original
+
+
+5. REFERENSI
+================================================================================
+
+   [1] Federal Information Processing Standard (FIPS) 197. (2001)
+       "Specification for the ADVANCED ENCRYPTION STANDARD (AES)"
+       
+   [2] Daemen, J., & Rijmen, V. (2002)
+       "The Design of Rijndael: AES - The Advanced Encryption Standard"
+       
+   [3] Stallings, W. (2017)
+       "Cryptography and Network Security: Principles and Practice"
+       
+   [4] RFC 3394 - Advanced Encryption Standard (AES) Key Wrap Algorithm
+   
+   [5] NIST Special Publication 800-38 - Recommendation for Block Cipher Modes
+   
+   [6] Heys, H. M. - A Tutorial on Linear and Differential Cryptanalysis
+   
+   [Tambahkan referensi paper dan sumber lain yang relevan sesuai penelitian original]
+
+
+================================================================================
+CATATAN PENGERJAAN LAPORAN:
+================================================================================
+
+Berikut tips mengisi setiap bagian:
+
+1. PENDAHULUAN
+   - Jelaskan konteks keamanan data modern dan pentingnya AES
+   - Fokus pada replikasi penelitian dari paper original
+   - Batasi rumusan masalah pada aspek implementasi dan validasi
+   - Tujuan utama adalah mereplikasi dan menganalisis hasil penelitian
+
+2. METODE
+   - Uraikan pendekatan studi literatur dari paper original
+   - Jelaskan desain sistem dan arsitektur aplikasi
+   - Deskripsikan metodologi implementasi algoritma AES
+   - Jelaskan strategi pengujian dan validasi yang digunakan
+
+3. HASIL DAN PEMBAHASAN
+   - Tunjukkan hasil implementasi sistem yang telah dibuat
+   - Presentasikan hasil pengujian dengan data konkret (tabel, grafik)
+   - Bandingkan hasil implementasi dengan temuan paper original
+   - Analisis performa, keamanan, dan karakteristik AES dari implementasi
+   - Jelaskan insight yang diperoleh dari proses replikasi
+
+4. KESIMPULAN
+   - Ringkas pencapaian sesuai tujuan proyek
+   - Sampaikan insight teknis dan temuan penting
+   - Berikan saran untuk pengembangan lebih lanjut
+   - Hubungkan hasil dengan penelitian original
+
+================================================================================
