@@ -8,6 +8,7 @@ from sbox_analyzer import (get_sbox, check_bijective, check_balance, calculate_n
                            calculate_entropy, calculate_npcr,
                            get_construction_steps, AES_SBOX, SBOX_44)
 from aes_cipher import AESCipher
+from aes import AESInput, build_workbook, list16_to_matrix4x4_columnmajor
 import base64
 import pandas as pd
 import io
@@ -397,10 +398,7 @@ def encrypt_detailed():
     try:
         sbox_type = request.form.get('type')
         custom_sbox_str = request.form.get('custom_sbox')
-        image_file = request.files.get('image')
         
-        # Removed initial check to allow text input later
-            
         sbox, error = parse_sbox_input(sbox_type, custom_sbox_str)
         if error:
             return jsonify({'error': error}), 400
@@ -420,19 +418,34 @@ def encrypt_detailed():
         # Get Key
         key = get_key_from_request(request)
         
-        cipher = AESCipher(key, sbox)
+        # We need 16 bytes for matrix construction
+        if len(key) < 16:
+             key += b'\0' * (16 - len(key))
+        key = key[:16]
+
+        # Apply PKCS7 Padding to match standard AESCipher behavior
+        # This ensures the "Detailed Report" matches the actual output
+        pad_len = 16 - (len(data_bytes) % 16)
+        padded_data = data_bytes + bytes([pad_len] * pad_len)
         
-        # Encrypt only the first block for tracing
-        # Ensure we have at least 16 bytes
-        if len(data_bytes) < 16:
-             block = list(data_bytes) + [0] * (16 - len(data_bytes))
-        else:
-             block = list(data_bytes[:16])
-             
-        _, trace_data = cipher.encrypt_block(block, trace=True)
+        # Take the first block of the PADDED data
+        block_bytes = padded_data[:16]
         
-        # Generate custom Excel report
-        wb = generate_excel_report(trace_data, key, sbox)
+        # Convert to matrix format for aes.py
+        
+        # Convert to matrix format for aes.py
+        # list16_to_matrix4x4_columnmajor expects list of ints
+        key_list = list(key)
+        block_list = list(block_bytes)
+        
+        cipherkey_matrix = list16_to_matrix4x4_columnmajor(key_list)
+        plaintext_matrix = list16_to_matrix4x4_columnmajor(block_list)
+        
+        # Construct AESInput
+        aes_in = AESInput(cipherkey=cipherkey_matrix, plaintext=plaintext_matrix, sbox=sbox)
+        
+        # Generate Detailed Excel Workbook
+        wb = build_workbook(aes_in, out_path=None)
         
         # Save to BytesIO
         output = io.BytesIO()
@@ -447,6 +460,8 @@ def encrypt_detailed():
         )
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/analyze_image_sensitivity', methods=['POST'])
