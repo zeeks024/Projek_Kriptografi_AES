@@ -313,7 +313,8 @@ def encrypt():
         if image_file:
             image_bytes = image_file.read()
             # Pass Raw Key + Format to Analyzer
-            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format)
+            # Enforce max_dim=800 to prevent Server Timeout (Pure Python AES is slow)
+            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=800)
             
             if not encrypted_b64:
                  # If analyzer failed (e.g. hex error inside), it returns None
