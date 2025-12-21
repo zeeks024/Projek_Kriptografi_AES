@@ -57,8 +57,8 @@
                 <span class="title-word">AES</span>
                 <span class="title-word" style="color: var(--primary-color);">Security</span>
             </h1>
-            <p class="subtitle" style="font-size: 1.2rem; margin-bottom: 2rem; max-width: 650px; font-weight: 300; opacity: 0.8;">
-                An interactive platform exploring the mathematical foundations of <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9em; background: rgba(37, 99, 235, 0.1); padding: 0.2em 0.4em; border-radius: 4px; color: var(--primary-color);">Rijndael</span> encryption and S-Box construction.
+            <p class="subtitle" style="font-size: 1rem; margin-bottom: 2rem; max-width: 650px; font-weight: 300; opacity: 0.8;">
+                An interactive web-based platform for implementing, analyzing, and visualizing the Advanced Encryption Standard (AES) with a focus on S-Box construction and security characteristics.
             </p>
             
             <div class="header-stats" style="margin-top: 2rem; opacity: 0.8; display: flex; gap: 3rem;">
@@ -79,7 +79,7 @@
 
         <!-- MAIN NAVIGATION TABS -->
         <nav class="tab-navigation glass-panel" style="position: sticky; top: 20px; z-index: 1000; padding: 0.5rem; margin-bottom: 2rem; border-radius: 1rem;">
-            <div class="tab-container" style="display: flex; gap: 1rem; justify-content: center;">
+            <div class="tab-container" style="display: flex; gap: 1rem; justify-content: center; padding: 10px;">
                 <button class="nav-tab-btn active" data-tab="constructor">
                     <i class="fas fa-wand-magic-sparkles"></i> <span>Constructor</span>
                 </button>
@@ -130,7 +130,7 @@
                             <button class="preset-btn" data-matrix="K111"><i class="fas fa-cube"></i> K111</button>
                             <button class="preset-btn" data-matrix="K128"><i class="fas fa-cube"></i> K128</button>
                             <button class="preset-btn" data-matrix="K_AES"><i class="fas fa-shield"></i> K_AES</button>
-                           <button class="preset-btn custom-matrix-btn"><i class="fas fa-edit"></i> Custom Matrix</button>
+                            <button class="preset-btn custom-matrix-btn"><i class="fas fa-edit"></i> Custom Matrix</button>
                         </div>
                         
                         <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
@@ -755,7 +755,7 @@
                         </div>
                     </div>
 
- </div>
+                    </div>
                 </section>
             </div>
 
@@ -919,44 +919,78 @@
                             <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 2rem; color: var(--primary-color);"><i class="fas fa-users"></i> Meet Our Team</h3>
                             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem;">
                                 <!-- Member 1 -->
-                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="team-card glass-panel team-card-interactive" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
                                     <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
-                                        <img src="/static/team/member1.png" alt="Member 1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/team/member1.jpg" alt="Member 1" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
                                         <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
                                     </div>
-                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 1</h4>
-                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Arzaki Zunior Putra</h4>
+                                    <br>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">2304130136</p>
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
+                                        <i class="fas fa-envelope"></i> Contact Member
+                                    </div>
                                 </div>
 
                                 <!-- Member 2 -->
-                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="team-card glass-panel team-card-interactive" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
                                     <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
-                                        <img src="/static/team/member2.png" alt="Member 2" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/team/member2.jpg" alt="Member 2" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
                                         <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
                                     </div>
-                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 2</h4>
-                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Muhammad Nur Furqon</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">2304130140</p>
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
+                                        <i class="fas fa-envelope"></i> Contact Member
+                                    </div>
                                 </div>
 
                                 <!-- Member 3 -->
-                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="team-card glass-panel team-card-interactive" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
                                     <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
-                                        <img src="/static/team/member3.png" alt="Member 3" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/team/member3.jpg" alt="Member 3" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
                                         <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
                                     </div>
-                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 3</h4>
-                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Rahmat Hidayat</h4>
+                                    <br>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">2304130145</p>
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
+                                        <i class="fas fa-envelope"></i> Contact Member
+                                    </div>
                                 </div>
 
                                 <!-- Member 4 -->
-                                <div class="team-card glass-panel" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="team-card glass-panel team-card-interactive" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
                                     <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
-                                        <img src="/static/team/member4.png" alt="Member 4" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img src="/static/team/member4.jpg" alt="Member 4" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
                                         <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
                                     </div>
-                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Nama Anggota 4</h4>
-                                    <p style="color: var(--text-muted); font-size: 0.9rem;">Role / Position</p>
+                                    <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Lutfi Adi Prakoso</h4>
+                                    <br>
+                                    <p style="color: var(--text-muted); font-size: 0.9rem;">2304130148</p>
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
+                                        <i class="fas fa-link"></i> Visit LinkedIn
+                                    </div>
                                 </div>
+                                <script>
+                                    document.querySelectorAll('.team-card-interactive').forEach((card, index) => {
+                                        card.addEventListener('click', () => {
+                                            if (index === 0) {
+                                                window.open('https://www.linkedin.com/in/arzaki-zunior-putra-839a5b286/');
+                                            }
+
+                                            else if (index === 1) {
+                                                window.open('https://www.linkedin.com/in/muhammad-nur-furqon-84b26a325?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app');
+                                            }
+                                            else if (index === 2) {
+                                                window.open('https://www.linkedin.com/in/rhmt-hdyt/');
+                                            }
+                                            else if (index === 3) {
+                                                window.open('https://www.linkedin.com/in/lutfiadiprakoso');
+                                            }
+                                        });
+                                    });
+                                </script>
                             </div>
                         </div>
 
@@ -1004,7 +1038,8 @@
         </main>
 
         <footer style="margin-top: 4rem; text-align: center; padding: 2rem; color: var(--text-muted);">
-            <p style="margin-bottom: 1rem;">Designed & Engineered by <strong style="color: var(--text-color);">Arzaki</strong></p>
+            <p style="margin-bottom: 0rem;">Designed & Engineered by <strong style="color: var(--text-color);">Computer Science Student at Universitas Negeri Semarang</strong></p>
+            <p style="margin-bottom: 1rem;">Developed as an academic cryptography final project</p>
             <div style="display: flex; justify-content: center; gap: 1.5rem; font-size: 1.5rem;">
                 <a href="#" class="social-link" aria-label="Github Profile" style="color: var(--text-color);"><i class="fab fa-github"></i></a>
                 <a href="#" class="social-link" aria-label="LinkedIn Profile" style="color: var(--text-color);"><i class="fab fa-linkedin"></i></a>

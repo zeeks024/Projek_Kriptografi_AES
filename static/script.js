@@ -780,6 +780,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Set default active button (K44 - Best)
+    const defaultBtn = document.querySelector('[data-matrix="K44"]');
+    if (defaultBtn) {
+        defaultBtn.classList.add('active');
+        // Trigger click to load the matrix
+        defaultBtn.click();
+    }
     // Removing the early closing of DOMContentLoaded here
     // }); 
 
