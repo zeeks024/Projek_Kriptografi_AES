@@ -313,8 +313,9 @@ def encrypt():
         if image_file:
             image_bytes = image_file.read()
             # Pass Raw Key + Format to Analyzer
-            # Enforce max_dim=800 to prevent Server Timeout (Pure Python AES is slow)
-            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=800)
+            # Enforce max_dim=500 to prevent Server Timeout (Pure Python AES is slow)
+            # 500x500 is ~250k pixels, roughly 1/3 of 800x800 processing time.
+            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=500)
             
             if not encrypted_b64:
                  # If analyzer failed (e.g. hex error inside), it returns None
@@ -520,20 +521,30 @@ def analyze_image_sensitivity():
         processed_image_bytes = buf.getvalue()
         
         # RESIZE IMAGE FOR SAFETY (Prevent Timeout/OOM on Deployment)
-        img.thumbnail((256, 256)) # Max 256px dimension
+        # 128px is sufficient for statistical metrics (Entropy/NPCR/UACI) and much faster/lighter.
+        img.thumbnail((128, 128)) 
         
         # Save processed (resized) image to bytes
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         processed_image_bytes = buf.getvalue()
         
+        # Explicit GC
+        import gc
+        gc.collect()
+
         # 1. Encrypt Original (Processed) -> C1
-        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=256)
+        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=128)
         
+        if not c1_b64:
+             return jsonify({'error': 'Encryption failed during analysis. Check key/format.'}), 400
+
         # 2. Calculate Entropy
         original_entropy = calculate_entropy(processed_image_bytes)
         encrypted_entropy = calculate_entropy(c1_bytes_raw)
         
+        gc.collect()
+
         # 3. Modify Image (Flip 1 bit of processed image) -> P2
         # Re-open modified image from bytes to ensure consistency
         arr = np.array(Image.open(io.BytesIO(processed_image_bytes)))
@@ -546,12 +557,16 @@ def analyze_image_sensitivity():
         img_mod.save(buf_mod, format='PNG')
         image_mod_bytes = buf_mod.getvalue()
         
+        gc.collect()
+
         # 4. Encrypt Modified -> C2
-        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format, max_dim=256)
+        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format, max_dim=128)
         
         # 5. Calculate Metrics (NPCR & UACI) efficient pass
         npcr, uaci = calculate_sensitivity_metrics(c1_bytes_raw, c2_bytes_raw)
         
+        gc.collect()
+
         return jsonify({
             'original_entropy': original_entropy,
             'entropy': encrypted_entropy,
