@@ -5,7 +5,7 @@ from sbox_analyzer import (get_sbox, check_bijective, check_balance, calculate_n
                            calculate_transparency_order, calculate_correlation_immunity,
                            get_ddt_table, get_lat_table, 
                            encrypt_image_data, decrypt_image_data, construct_sbox_from_matrix, 
-                           calculate_entropy, calculate_npcr, calculate_uaci, calculate_sensitivity_metrics,
+                           calculate_entropy, calculate_npcr, calculate_uaci,
                            get_construction_steps, AES_SBOX, SBOX_44)
 from aes_cipher import AESCipher
 from aes import AESInput, build_workbook, list16_to_matrix4x4_columnmajor
@@ -313,9 +313,7 @@ def encrypt():
         if image_file:
             image_bytes = image_file.read()
             # Pass Raw Key + Format to Analyzer
-            # Enforce max_dim=500 to prevent Server Timeout (Pure Python AES is slow)
-            # 500x500 is ~250k pixels, roughly 1/3 of 800x800 processing time.
-            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=500)
+            encrypted_b64, hist_orig, hist_enc, _ = encrypt_image_data(image_bytes, sbox, key_input, encryption_mode, key_format)
             
             if not encrypted_b64:
                  # If analyzer failed (e.g. hex error inside), it returns None
@@ -511,7 +509,8 @@ def analyze_image_sensitivity():
         img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
         # Resize if too large, similar to encrypt_image_data logic
-        max_dim = 256
+        # Reduced to 128px for faster deployment processing
+        max_dim = 128
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim))
             
@@ -520,34 +519,15 @@ def analyze_image_sensitivity():
         img.save(buf, format='PNG')
         processed_image_bytes = buf.getvalue()
         
-        # RESIZE IMAGE FOR SAFETY (Prevent Timeout/OOM on Deployment)
-        # 128px is sufficient for statistical metrics (Entropy/NPCR/UACI) and much faster/lighter.
-        img.thumbnail((128, 128)) 
-        
-        # Save processed (resized) image to bytes
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        processed_image_bytes = buf.getvalue()
-        
-        # Explicit GC
-        import gc
-        gc.collect()
-
         # 1. Encrypt Original (Processed) -> C1
-        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format, max_dim=128)
+        c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format)
         
-        if not c1_b64:
-             return jsonify({'error': 'Encryption failed during analysis. Check key/format.'}), 400
-
         # 2. Calculate Entropy
         original_entropy = calculate_entropy(processed_image_bytes)
         encrypted_entropy = calculate_entropy(c1_bytes_raw)
         
-        gc.collect()
-
         # 3. Modify Image (Flip 1 bit of processed image) -> P2
-        # Re-open modified image from bytes to ensure consistency
-        arr = np.array(Image.open(io.BytesIO(processed_image_bytes)))
+        arr = np.array(img)
         # Flip LSB of first pixel
         arr_mod = arr.copy()
         arr_mod[0,0,0] ^= 1 
@@ -557,16 +537,13 @@ def analyze_image_sensitivity():
         img_mod.save(buf_mod, format='PNG')
         image_mod_bytes = buf_mod.getvalue()
         
-        gc.collect()
-
         # 4. Encrypt Modified -> C2
-        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format, max_dim=128)
+        c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format)
         
-        # 5. Calculate Metrics (NPCR & UACI) efficient pass
-        npcr, uaci = calculate_sensitivity_metrics(c1_bytes_raw, c2_bytes_raw)
+        # 5. Calculate Metrics (NPCR & UACI)
+        npcr = calculate_npcr(c1_bytes_raw, c2_bytes_raw)
+        uaci = calculate_uaci(c1_bytes_raw, c2_bytes_raw)
         
-        gc.collect()
-
         return jsonify({
             'original_entropy': original_entropy,
             'entropy': encrypted_entropy,
