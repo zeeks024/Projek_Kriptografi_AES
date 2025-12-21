@@ -1052,8 +1052,8 @@ def calculate_uaci(image1_bytes, image2_bytes):
         if img1.size != img2.size:
             return 0
             
-        arr1 = np.array(img1, dtype=np.float32)
-        arr2 = np.array(img2, dtype=np.float32)
+        arr1 = np.array(img1, dtype=np.int16)
+        arr2 = np.array(img2, dtype=np.int16)
         
         height, width, channels = arr1.shape
         total_pixels = height * width * channels
