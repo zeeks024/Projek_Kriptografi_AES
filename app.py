@@ -5,7 +5,7 @@ from sbox_analyzer import (get_sbox, check_bijective, check_balance, calculate_n
                            calculate_transparency_order, calculate_correlation_immunity,
                            get_ddt_table, get_lat_table, 
                            encrypt_image_data, decrypt_image_data, construct_sbox_from_matrix, 
-                           calculate_entropy, calculate_npcr,
+                           calculate_entropy, calculate_npcr, calculate_uaci,
                            get_construction_steps, AES_SBOX, SBOX_44)
 from aes_cipher import AESCipher
 from aes import AESInput, build_workbook, list16_to_matrix4x4_columnmajor
@@ -22,7 +22,7 @@ app = Flask(__name__)
 def parse_sbox_input(sbox_type, custom_sbox_str):
     """Parses S-Box input from type and custom string."""
     sbox = []
-    if sbox_type == 'custom':
+    if sbox_type == 'custom' or sbox_type == 'upload':
         if not custom_sbox_str:
              return None, 'Custom S-Box string required.'
         try:
@@ -521,8 +521,9 @@ def analyze_image_sensitivity():
         # 1. Encrypt Original (Processed) -> C1
         c1_b64, _, _, c1_bytes_raw = encrypt_image_data(processed_image_bytes, sbox, key_input, encryption_mode, key_format)
         
-        # 2. Calculate Entropy of C1
-        entropy = calculate_entropy(c1_bytes_raw)
+        # 2. Calculate Entropy
+        original_entropy = calculate_entropy(processed_image_bytes)
+        encrypted_entropy = calculate_entropy(c1_bytes_raw)
         
         # 3. Modify Image (Flip 1 bit of processed image) -> P2
         arr = np.array(img)
@@ -538,12 +539,15 @@ def analyze_image_sensitivity():
         # 4. Encrypt Modified -> C2
         c2_b64, _, _, c2_bytes_raw = encrypt_image_data(image_mod_bytes, sbox, key_input, encryption_mode, key_format)
         
-        # 5. Calculate NPCR (C1, C2)
+        # 5. Calculate Metrics (NPCR & UACI)
         npcr = calculate_npcr(c1_bytes_raw, c2_bytes_raw)
+        uaci = calculate_uaci(c1_bytes_raw, c2_bytes_raw)
         
         return jsonify({
-            'entropy': entropy,
-            'npcr': npcr
+            'original_entropy': original_entropy,
+            'entropy': encrypted_entropy,
+            'npcr': npcr,
+            'uaci': uaci
         })
 
     except Exception as e:
@@ -802,6 +806,36 @@ def download_sbox_excel():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
             download_name='sbox_constructed.xlsx'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/download_template_sbox', methods=['GET'])
+def download_template_sbox():
+    """
+    Download empty S-Box Excel template.
+    """
+    try:
+        # Create 256 empty strings for the template
+        empty_sbox = [""] * 256
+        
+        # Generate Excel file
+        wb = generate_sbox_excel(empty_sbox)
+        
+        # Manual override: Set 16x16 grid cells to explicit empty strings if needed, 
+        # but generate_sbox_excel handles it if we pass ""
+        
+        # Save to BytesIO
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='sbox_template_empty.xlsx'
         )
         
     except Exception as e:

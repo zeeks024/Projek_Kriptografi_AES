@@ -1029,8 +1029,40 @@ def calculate_npcr(image1_bytes, image2_bytes):
         diff = np.sum(arr1 != arr2)
         npcr = (diff / (height * width * 3)) * 100
         
-        return npcr
-
+        return float(npcr)
+        
     except Exception as e:
         print(f"Error calculating NPCR: {e}")
+        return 0
+
+def calculate_uaci(image1_bytes, image2_bytes):
+    """
+    Calculates Unified Average Changing Intensity (UACI).
+    UACI = (1 / (W * H * C)) * sum(|C1(i,j,k) - C2(i,j,k)| / 255) * 100
+    Ideal value approx 33.46%
+    """
+    try:
+        from PIL import Image
+        import io
+        import numpy as np
+
+        img1 = Image.open(io.BytesIO(image1_bytes)).convert('RGB')
+        img2 = Image.open(io.BytesIO(image2_bytes)).convert('RGB')
+        
+        if img1.size != img2.size:
+            return 0
+            
+        arr1 = np.array(img1, dtype=np.float32)
+        arr2 = np.array(img2, dtype=np.float32)
+        
+        height, width, channels = arr1.shape
+        total_pixels = height * width * channels
+        
+        diff = np.abs(arr1 - arr2)
+        uaci = (np.sum(diff) / (255 * total_pixels)) * 100
+        
+        return float(uaci)
+
+    except Exception as e:
+        print(f"Error calculating UACI: {e}")
         return 0

@@ -269,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ciphertextInput = document.getElementById('ciphertext-input');
     const decryptBtn = document.getElementById('decrypt-btn');
     const decryptedOutput = document.getElementById('decrypted-output');
+    const decryptionKeyInput = document.getElementById('decryption-key-input');
 
     // Tab Switching Logic with Anime.js animation
     // [REMOVED] Old Tab Logic
@@ -454,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const key = encryptionKeyInput.value || '000102030405060708090a0b0c0d0e0f';
+        const key = decryptionKeyInput.value || '000102030405060708090a0b0c0d0e0f';
 
         // Use loaded S-Box or default to AES S-Box
         let sBox = window.currentSBox;
@@ -1499,7 +1500,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Upload S-Box from Excel
     // [REFACTORED] Reusable S-Box Upload Function
-    async function handleSBoxUpload(file) {
+    async function handleSBoxUpload(file, statusElementId = null) {
         if (!file) return;
 
         // Find status element (try global or create/find local one if needed)
@@ -1538,6 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Success - populate custom S-Box textarea (Shared Source of Truth)
             const sboxString = data.sbox.join(' ');
+            const customSboxTextarea = document.getElementById('custom-sbox');
             if (customSboxTextarea) customSboxTextarea.value = sboxString;
 
             // Sync ALL S-Box Selectors to 'custom'
@@ -1548,7 +1550,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Show success message
-            if (uploadStatus) {
+            // Show success message
+            if (statusElementId) {
+                const statusEl = document.getElementById(statusElementId);
+                if (statusEl) {
+                    statusEl.classList.remove('hidden');
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> ${data.message}`;
+                    setTimeout(() => statusEl.classList.add('hidden'), 3000);
+                }
+            } else if (uploadStatus) {
+                // Fallback to Tab 2 status
                 uploadStatus.style.background = 'rgba(16, 185, 129, 0.1)';
                 uploadStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
                 uploadStatus.style.color = '#10b981';
@@ -1579,19 +1590,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Bind Text Crypto Upload (Tab 3)
-    const textSboxUploadBtn = document.getElementById('text-sbox-upload-btn');
     const textSboxUploadFile = document.getElementById('text-sbox-upload-file');
-    if (textSboxUploadBtn && textSboxUploadFile) {
-        textSboxUploadBtn.addEventListener('click', () => textSboxUploadFile.click());
-        textSboxUploadFile.addEventListener('change', (e) => handleSBoxUpload(e.target.files[0]));
+    if (textSboxUploadFile) {
+        textSboxUploadFile.addEventListener('change', (e) => {
+            handleSBoxUpload(e.target.files[0], 'text-upload-status');
+        });
     }
 
     // Bind Image Crypto Upload (Tab 4)
-    const imageSboxUploadBtn = document.getElementById('image-sbox-upload-btn');
     const imageSboxUploadFile = document.getElementById('image-sbox-upload-file');
-    if (imageSboxUploadBtn && imageSboxUploadFile) {
-        imageSboxUploadBtn.addEventListener('click', () => imageSboxUploadFile.click());
-        imageSboxUploadFile.addEventListener('change', (e) => handleSBoxUpload(e.target.files[0]));
+    if (imageSboxUploadFile) {
+        imageSboxUploadFile.addEventListener('change', (e) => {
+            handleSBoxUpload(e.target.files[0], 'image-upload-status');
+        });
     }
 
     // Synchronization Logic (Optional: Keep selectors in sync or let them be independent?)
@@ -1609,7 +1620,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle UI visibility in Tab 2
         if (sourceId !== 'sbox-select') {
-            // If we changed it from outside Tab 2, update Tab 2 UI visibility (Custom/Upload fields)
             if (val === 'custom') {
                 if (customInputContainer) customInputContainer.classList.remove('hidden');
                 if (uploadInputContainer) uploadInputContainer.classList.add('hidden');
@@ -1620,6 +1630,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (customInputContainer) customInputContainer.classList.add('hidden');
                 if (uploadInputContainer) uploadInputContainer.classList.add('hidden');
             }
+        }
+
+        // Handle UI visibility in Text Tab (Tab 3)
+        const textUploadContainer = document.getElementById('text-upload-container');
+        if (textUploadContainer) {
+            if (val === 'upload') textUploadContainer.classList.remove('hidden');
+            else textUploadContainer.classList.add('hidden');
+        }
+
+        // Handle UI visibility in Image Tab (Tab 4)
+        const imageUploadContainer = document.getElementById('image-upload-container');
+        if (imageUploadContainer) {
+            if (val === 'upload') imageUploadContainer.classList.remove('hidden');
+            else imageUploadContainer.classList.add('hidden');
         }
     }
 
@@ -2056,8 +2080,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(data.error || 'Analysis failed');
                 }
 
+                document.getElementById('img-original-entropy-value').textContent = data.original_entropy.toFixed(4);
                 document.getElementById('img-entropy-value').textContent = data.entropy.toFixed(4);
                 document.getElementById('img-npcr-value').textContent = data.npcr.toFixed(4) + '%';
+                document.getElementById('img-uaci-value').textContent = data.uaci.toFixed(4) + '%';
 
             } catch (error) {
                 console.error(error);
