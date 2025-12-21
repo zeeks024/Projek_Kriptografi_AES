@@ -8,6 +8,7 @@ env/
 venv/
 .env
 
+
 # Excel
 *.xlsx
 *.xls
@@ -22,3 +23,6 @@ venv/
 # IDE
 .vscode/
 .idea/
+# Files
+Laporan.txt
+s11071-024-10414-3.pdf
