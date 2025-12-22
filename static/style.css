@@ -372,6 +372,13 @@ label i {
     position: relative;
 }
 
+.select-wrapper select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2.5rem;
+}
+
 .select-arrow {
     position: absolute;
     right: 1rem;
@@ -2348,7 +2355,7 @@ button:disabled {
 }
 
 .team-card-interactive:hover {
-    transform: scale(1.12) translateY(-15px);
+    transform: scale(1.05) translateY(-10px);
     background: linear-gradient(135deg, rgba(0, 242, 255, 0.15), rgba(112, 0, 255, 0.1));
     border-color: var(--primary-color);
     box-shadow: 
@@ -2395,9 +2402,5 @@ select,
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(0,242,255,0.8)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.7rem center;
-    background-size: 1.2em;
     padding-right: 2.5rem;
 }
