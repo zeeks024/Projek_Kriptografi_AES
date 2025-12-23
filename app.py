@@ -635,6 +635,16 @@ def construct():
                 return jsonify({'error': 'Constant elements must be 0 or 1.'}), 400
         
         # Construct S-box
+        import numpy as np
+        K_debug = np.array(affine_matrix, dtype=np.int8)
+        try:
+             rank = np.linalg.matrix_rank(K_debug)
+             print(f"DEBUG: /construct Matrix Rank: {rank}")
+        except:
+             print("DEBUG: Rank check failed")
+             
+        print(f"DEBUG: /construct Polynomial: {polynomial}")
+        
         sbox = construct_sbox_from_matrix(affine_matrix, c_constant, mod_poly=polynomial)
         
         # Test the S-box
@@ -653,6 +663,7 @@ def construct():
         
         return jsonify({
             'sbox': sbox_hex,
+            'sbox_values': [int(x) for x in sbox], # Raw integers for analysis
             'is_bijective': is_bijective,
             'balance_results': balance_results,
             'construction_steps': construction_steps,
@@ -787,6 +798,7 @@ def download_sbox_excel():
     try:
         data = request.json
         sbox = data.get('sbox')
+        matrix_name = data.get('matrix_name', 'Custom')  # Default to 'Custom' if not provided
         
         if not sbox:
             return jsonify({'error': 'S-Box data is required.'}), 400
@@ -802,11 +814,14 @@ def download_sbox_excel():
         wb.save(output)
         output.seek(0)
         
+        # Generate filename based on matrix name
+        filename = f'Sbox_{matrix_name}.xlsx'
+        
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name='sbox_constructed.xlsx'
+            download_name=filename
         )
         
     except Exception as e:
@@ -928,6 +943,71 @@ def upload_sbox_excel():
         return jsonify({'error': f'Parsing error: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'error': f'Error reading file: {str(e)}'}), 500
+
+@app.route('/analyze_sbox', methods=['POST'])
+def analyze_sbox_endpoint():
+    """
+    Direct S-Box Analysis Endpoint for Comparison Tool.
+    Expects JSON with 'sbox' (list of 256 integers or hex strings).
+    """
+    try:
+        data = request.json
+        sbox_input = data.get('sbox')
+        
+        if not sbox_input:
+             return jsonify({'error': 'S-Box data is required.'}), 400
+             
+        # Parse S-Box (handle hex strings or ints)
+        sbox = []
+        if isinstance(sbox_input, list):
+            for x in sbox_input:
+                if isinstance(x, str):
+                    if x.lower().startswith('0x'):
+                        sbox.append(int(x, 16))
+                    else:
+                         # Try parsing as decimal string (or hex without prefix?)
+                        try:
+                            sbox.append(int(x))
+                        except:
+                            # Try hex without prefix
+                            try: 
+                                sbox.append(int(x, 16))
+                            except:
+                                return jsonify({'error': f'Invalid value in S-Box: {x}'}), 400
+                elif isinstance(x, int):
+                    sbox.append(x)
+                else:
+                     return jsonify({'error': f'Invalid value in S-Box: {x}'}), 400
+        else:
+             return jsonify({'error': 'S-Box must be a list.'}), 400
+
+        if len(sbox) != 256:
+             return jsonify({'error': f'S-Box must have 256 values. Got {len(sbox)}.'}), 400
+
+        # Run Analysis
+        nl = calculate_nonlinearity(sbox)
+        sac = calculate_sac(sbox)
+        bic_nl = calculate_bic_nl(sbox)
+        bic_sac = calculate_bic_sac(sbox)
+        lap = calculate_lap(sbox)
+        dap = calculate_dap(sbox)
+        du = calculate_differential_uniformity(sbox)
+        
+        return jsonify({
+            'nl': nl,
+            'sac': sac,
+            'bic_nl': bic_nl,
+            'bic_sac': bic_sac,
+            'lap': lap,
+            'dap': dap,
+            'du': du,
+            'differential_uniformity': du, # Alias for consistency
+            'nonlinearity': nl             # Alias
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=False, port=5001)

@@ -391,33 +391,15 @@
                         </p>
 
                         <!-- S-Box Selectors -->
-                        <div class="comparison-selectors" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                            <div class="selector-group">
-                                <label><strong>S-Box 1:</strong></label>
-                                <select id="compare-sbox1" class="comparison-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
-                                    <option value="">Select S-Box...</option>
-                                    <option value="aes">AES (Rijndael)</option>
-                                    <option value="K4">K4</option>
-                                    <option value="K44">K44</option>
-                                    <option value="K81">K81</option>
-                                    <option value="K111">K111</option>
-                                    <option value="K128">K128</option>
-                                    <option value="current">Current Loaded S-Box</option>
-                                </select>
-                            </div>
-                            <div class="selector-group">
-                                <label><strong>S-Box 2:</strong></label>
-                                <select id="compare-sbox2" class="comparison-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color); margin-top: 0.5rem;">
-                                    <option value="">Select S-Box...</option>
-                                    <option value="aes">AES (Rijndael)</option>
-                                    <option value="K4">K4</option>
-                                    <option value="K44">K44</option>
-                                    <option value="K81">K81</option>
-                                    <option value="K111">K111</option>
-                                    <option value="K128">K128</option>
-                                    <option value="current">Current Loaded S-Box</option>
-                                </select>
-                            </div>
+                        <!-- Dynamic S-Box Selectors -->
+                        <div id="comparison-dynamic-container" style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+                            <!-- Dynamic items will be injected here -->
+                        </div>
+
+                        <div style="text-align: center; margin-bottom: 2rem;">
+                            <button id="add-sbox-btn" class="btn secondary-btn" style="border-style: dashed; width: auto; padding-left: 3rem; padding-right: 3rem;">
+                                <i class="fas fa-plus"></i> Add S-Box to Compare
+                            </button>
                         </div>
 
                         <button id="run-comparison-btn" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto 2rem; display: block;">
@@ -432,8 +414,8 @@
                                     <thead>
                                         <tr style="background: rgba(37, 99, 235, 0.1); border-bottom: 2px solid var(--primary-color);">
                                             <th style="padding: 1rem; text-align: left;">Metric</th>
-                                            <th id="sbox1-name-header" style="padding: 1rem; text-align: center;">S-Box 1</th>
-                                            <th id="sbox2-name-header" style="padding: 1rem; text-align: center;">S-Box 2</th>
+                                            <!-- Dynamic headers will be injected here -->
+                                            <th id="comparison-headers-anchor" style="display: none;"></th> 
                                             <th style="padding: 1rem; text-align: center;">Winner</th>
                                         </tr>
                                     </thead>
@@ -465,13 +447,7 @@
                             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-top: 1rem;">
                                 <select id="attack-sbox-select" class="form-select">
                                     <option value="">Select S-Box...</option>
-                                    <option value="aes">AES (Rijndael)</option>
-                                    <option value="K4">K4</option>
-                                    <option value="K44">K44</option>
-                                    <option value="K81">K81</option>
-                                    <option value="K111">K111</option>
-                                    <option value="K128">K128</option>
-                                    <option value="current">Current Loaded S-Box</option>
+                                    <!-- Dynamic options will be added here -->
                                     <option value="custom">Custom (paste/upload)</option>
                                 </select>
                                 <button id="load-attack-sbox-btn" class="btn-primary">
@@ -863,7 +839,7 @@
                                 
                                 <!-- Encrypted -->
                                 <div class="image-card">
-                                    <h4 style="text-align: center; margin-bottom: 1rem; color: #ef4444;">Encrypted</h4>
+                                    <h4 style="text-align: center; margin-bottom: 1rem; color: #ef4444;">Encrypted Image</h4>
                                     <div class="img-wrapper" style="width: 100%; height: 250px; overflow: hidden; border-radius: 8px; background: #000;">
                                         <img id="img-preview-enc" src="" style="width: 100%; height: 100%; object-fit: contain;">
                                     </div>
@@ -1132,11 +1108,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="{{ url_for('static', filename='matrices.js') }}?v=14"></script>
+    <script src="{{ url_for('static', filename='matrices.js') }}?v=15"></script>
     <script src="{{ url_for('static', filename='aes.js') }}?v=1"></script>
     <script src="{{ url_for('static', filename='tooltips.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='comparison.js') }}?v=1"></script>
-    <script src="{{ url_for('static', filename='attacks.js') }}?v=6"></script>
+    <script src="{{ url_for('static', filename='comparison.js') }}?v=7"></script>
+    <script src="{{ url_for('static', filename='attacks.js') }}?v=7"></script>
     <script src="{{ url_for('static', filename='script.js') }}?v=19"></script>
     <script>
         // Initialize tooltips when DOM is ready
