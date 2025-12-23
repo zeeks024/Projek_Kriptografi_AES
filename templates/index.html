@@ -113,10 +113,13 @@
                         <!-- Research Method Selector -->
                         <div style="margin-bottom: 2rem; background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; border: 1px solid rgba(37, 99, 235, 0.2);">
                             <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--primary-color);">Select Research Method (Polynomial):</label>
-                            <select id="research-method-select" class="form-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color);">
-                                <option value="standard">Standard: x⁸ + x⁴ + x³ + x + 1 (0x11B)</option>
-                                <option value="paper2023">Research: x⁸ + x⁷ + x⁶ + x⁵ + x⁴ + x + 1 (0x1F3)</option>
-                            </select>
+                            <div class="select-wrapper"> 
+                                <select id="research-method-select" class="form-select" style="width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; color: var(--text-color);">
+                                    <option value="standard">Standard: x⁸ + x⁴ + x³ + x + 1 (0x11B)</option>
+                                    <option value="paper2023">Research: x⁸ + x⁷ + x⁶ + x⁵ + x⁴ + x + 1 (0x1F3)</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
                             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
                                 * Changing this affects the underlying Galois Field arithmetic and available matrices.
                             </p>
@@ -139,7 +142,7 @@
                             <div class="custom-dropdown" id="matrix-dropdown">
                                 <div class="dropdown-trigger" id="matrix-trigger">
                                     <span id="matrix-selected-text">-- Select Matrix --</span>
-                                    <i class="fas fa-chevron-down"></i>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
                                 </div>
                                 <div class="dropdown-menu" id="matrix-menu">
                                     <div class="dropdown-search">
@@ -279,13 +282,13 @@
 
                 <!-- Sub-Tab Navigation for ANALYSIS -->
                 <div class="sub-tab-navigation" style="margin-top: 1.5rem;">
-                    <button class="sub-tab-btn active" data-subtab="analysis-results">
+                    <button class="sub-tab-btn active" data-subtab="analysis-results" style="margin-bottom: 0.75rem;">
                         <i class="fas fa-chart-bar"></i> Metrics & Results
                     </button>
-                    <button class="sub-tab-btn" data-subtab="analysis-compare">
+                    <button class="sub-tab-btn" data-subtab="analysis-compare" style="margin-bottom: 0.75rem;">
                         <i class="fas fa-balance-scale"></i> Compare S-Boxes
                     </button>
-                    <button class="sub-tab-btn" data-subtab="analysis-security">
+                    <button class="sub-tab-btn" data-subtab="analysis-security" style="margin-bottom: 0.75rem;">
                         <i class="fas fa-shield-alt"></i> Security Analysis
                     </button>
                 </div>
@@ -637,12 +640,15 @@
                     <div style="background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; border: 1px solid rgba(37, 99, 235, 0.2); display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
                         <div style="flex: 1; min-width: 250px;">
                             <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--text-color);">Current S-Box Configuration:</label>
-                            <select id="text-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
-                                <option value="aes">🛡️ AES Standard (Default)</option>
-                                <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
-                                <option value="custom">✏️ Custom S-Box</option>
-                                <option value="upload">📤 Upload from Excel</option>
-                            </select>
+                            <div class="select-wrapper">
+                                <select id="text-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
+                                    <option value="aes">🛡️ AES Standard (Default)</option>
+                                    <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
+                                    <option value="custom">✏️ Custom S-Box</option>
+                                    <option value="upload">📤 Upload from Excel</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
                         </div>
                         
                         <div id="text-upload-container" class="hidden" style="flex: 1 1 100%; margin-top: 1rem;">
@@ -657,7 +663,7 @@
                     
 
                     <!-- Internal Sub-Tabs -->
-                    <div class="sub-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                    <div class="sub-tabs" style="display: flex; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
                         <button class="sub-tab-btn active" data-subtab="encryption">
                             <i class="fas fa-lock"></i> Encryption
                         </button>
@@ -784,12 +790,15 @@
                     <div style="background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 0.5rem; margin-bottom: 2rem; border: 1px solid rgba(37, 99, 235, 0.2); display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
                         <div style="flex: 1; min-width: 250px;">
                             <label style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--text-color);">Current S-Box Configuration:</label>
-                            <select id="image-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
-                                <option value="aes">🛡️ AES Standard (Default)</option>
-                                <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
-                                <option value="custom">✏️ Custom S-Box</option>
-                                <option value="upload">📤 Upload from Excel</option>
-                            </select>
+                            <div class="select-wrapper">
+                                <select id="image-sbox-select" style="width: 100%; padding: 0.5rem; background: #222; border: 1px solid #444; color: white; border-radius: 4px;">
+                                    <option value="aes">🛡️ AES Standard (Default)</option>
+                                    <option value="sbox44">⭐ S-Box 44 (Best Found)</option>
+                                    <option value="custom">✏️ Custom S-Box</option>
+                                    <option value="upload">📤 Upload from Excel</option>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
                         </div>
                         
                         <div id="image-upload-container" class="hidden" style="flex: 1 1 100%; margin-top: 1rem;">
@@ -935,11 +944,55 @@
                     <div style="max-width: 900px; margin: 0 auto;">
                         <!-- Project Intro -->
                         <div style="margin-bottom: 4rem; text-align: center;">
-                            <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">The Research</h2>
+                            <h2 style="text-align: center; font-size: 2.5rem; font-weight: 800; justify-content: center;">The Research</h2>
                             <p style="font-size: 1.1rem; color: var(--text-muted); line-height: 1.7; max-width: 700px; margin: 0 auto;">
                                 This tool implements advanced cryptanalysis techniques based on recent affine transformation research. 
                                 It allows for the construction of cryptographically strong S-Boxes essential for securing modern digital infrastructure.
                             </p>
+                        </div>
+
+                        <!-- Reference Papers Section -->
+                        <div style="margin-bottom: 4rem;">
+                            <h3 style="text-align: center; font-size: 1.8rem; margin-bottom: 2rem; color: var(--primary-color);"><i class="fas fa-book"></i> Reference Papers</h3>
+                            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem;">
+                                <!-- Paper 1 -->
+                                <div class="paper-card glass-panel team-card-interactive" style="flex: 1; min-width: 250px; max-width: 280px; padding: 1.2rem 0.8rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;" data-paper="0">
+                                    <div style="width: 120px; height: 120px; margin: 0 auto 0.7rem; display: flex; align-items: center; justify-content: center; background: rgba(0, 242, 255, 0.1); border-radius: 12px; border: 2px solid var(--primary-color);">
+                                        <i class="fas fa-file-alt" style="font-size: 3rem; color: var(--primary-color);"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.7rem; font-size: 0.80rem; line-height: 1.4; min-height: 60px;">AES S-box modification uses affine matrices exploration for increased S-box strength</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">Springer Journal</p>
+                                    <div style="margin-top: 0.7rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Read Paper
+                                    </div>
+                                </div>
+
+                                <!-- Paper 2 -->
+                                <div class="paper-card glass-panel team-card-interactive" style="flex: 1; min-width: 250px; max-width: 280px; padding: 1.2rem 0.8rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;" data-paper="1">
+                                    <div style="width: 120px; height: 120px; margin: 0 auto 0.7rem; display: flex; align-items: center; justify-content: center; background: rgba(0, 242, 255, 0.1); border-radius: 12px; border: 2px solid var(--primary-color);">
+                                        <i class="fas fa-file-alt" style="font-size: 3rem; color: var(--primary-color);"></i>
+                                    </div>
+                                    <h4 style="color: white; margin-bottom: 0.7rem; font-size: 0.80rem; line-height: 1.4; min-height: 60px;">S-box Construction on AES Algorithm using Affine Matrix Modification to Improve Image Encryption Security</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">UNNES Journal</p>
+                                    <div style="margin-top: 0.7rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Read Paper
+                                    </div>
+                                </div>
+                                <script>
+                                    document.querySelectorAll('.paper-card').forEach((card) => {
+                                        card.addEventListener('click', () => {
+                                            const paperIndex = card.getAttribute('data-paper');
+                                            const paperLinks = [
+                                                'https://link.springer.com/article/10.1007/s11071-024-10414-3',
+                                                'https://journal.unnes.ac.id/nju/sji/article/view/42305/pdf'
+                                            ];
+                                            if (paperLinks[paperIndex]) {
+                                                window.open(paperLinks[paperIndex], '_blank');
+                                            }
+                                        });
+                                    });
+                                </script>
+                            </div>
                         </div>
 
                         <!-- Team Section -->
@@ -955,8 +1008,8 @@
                                     <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Arzaki Zunior Putra</h4>
                                     <br>
                                     <p style="color: var(--text-muted); font-size: 0.9rem;">2304130136</p>
-                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
-                                        <i class="fas fa-envelope"></i> Contact Member
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Get to Know
                                     </div>
                                 </div>
 
@@ -968,8 +1021,8 @@
                                     </div>
                                     <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Muhammad Nur Furqon</h4>
                                     <p style="color: var(--text-muted); font-size: 0.9rem;">2304130140</p>
-                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
-                                        <i class="fas fa-envelope"></i> Contact Member
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Get to Know
                                     </div>
                                 </div>
 
@@ -977,13 +1030,13 @@
                                 <div class="team-card glass-panel team-card-interactive" style="flex: 1; min-width: 200px; max-width: 220px; padding: 2rem 1rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); cursor: pointer;">
                                     <div class="img-container" style="width: 120px; height: 120px; border-radius: 50%; background: #222; margin: 0 auto 1rem; overflow: hidden; border: 3px solid var(--primary-color); display: flex; align-items: center; justify-content: center;">
                                         <img src="/static/team/member3.jpg" alt="Member 3" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;">
-                                        <i class="fas fa-user" style="font-size: 3rem; color: #444; display: none;"></i>
+                                        <i class="fas fa-external-link-alt" style="font-size: 3rem; color: #444; display: none;"></i>
                                     </div>
                                     <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Rahmat Hidayat</h4>
                                     <br>
                                     <p style="color: var(--text-muted); font-size: 0.9rem;">2304130145</p>
-                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
-                                        <i class="fas fa-envelope"></i> Contact Member
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Get to Know
                                     </div>
                                 </div>
 
@@ -996,8 +1049,8 @@
                                     <h4 style="color: white; margin-bottom: 0.5rem; font-size: 1.1rem;">Lutfi Adi Prakoso</h4>
                                     <br>
                                     <p style="color: var(--text-muted); font-size: 0.9rem;">2304130148</p>
-                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 0; transition: opacity 0.3s;">
-                                        <i class="fas fa-link"></i> Visit LinkedIn
+                                    <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--primary-color); opacity: 1; transition: opacity 0.3s;">
+                                        <i class="fas fa-external-link-alt"></i> Get to Know
                                     </div>
                                 </div>
                                 <script>
